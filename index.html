@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📚 강의 수강 현황 (최종 안정화 버전)</title>
+<title>📚 강의 수강 현황 (시스템 통합 완결판)</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -42,54 +42,8 @@ body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--te
 .form-row{display:flex; gap:8px; margin-bottom:8px;}
 input, select, textarea{width:100%; font-family:inherit; font-size:14px; padding:10px; border-radius:10px; border:1px solid var(--border); outline:none; margin-bottom:8px;}
 
-/* 관리자 메뉴 스타일 */
-.btn-sub-menu { flex: 1; font-size: 11px; padding: 10px 5px; background: #f3f4f6; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
-.btn-sub-menu.active { background: var(--blue); color: white; border-color: var(--blue); font-weight: 700; }
-.admin-item{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee; font-size:13px;}
-.toast{position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:10px 20px; border-radius:20px; font-size:13px; opacity:0; transition:0.3s; z-index:1000;}
-.toast.show{opacity:1;}
-</style>
-</head>
-<body>
-
-<div class="setup-overlay" id="setup-overlay">
-  <div class="setup-panel">
-    <h2 style="font-size:18px; margin-bottom:15px;">🔧 Firebase 초기 설정</h2>
-    <input type="text" id="cfg-url" placeholder="Database URL (https://...)">
-    <input type="text" id="cfg-key" placeholder="API Key">
-    <input type="text" id="cfg-project" placeholder="Project ID">
-    <button onclick="saveConfig()" class="btn btn-green">설정 저장 및 연결</button>
-  </div>
-</div>
-
-<div class="header">
-  <b>📚 수강 현황판</b>
-  <div>
-    <span id="conn-status" style="font-size:11px; color:var(--amber); margin-right:8px;">연결 중...</span>
-    <button onclick="forceReset()" style="font-size:10px; padding:4px 8px; border:1px solid #ddd; border-radius:5px; background:white;">⚙️ 재설정</button>
-  </div>
-</div>
-
-<div class="panel active" id="panel-status">
-  <div id="setup-area" style="display:flex; gap:8px; margin-bottom:15px;">
-    <input type="text" id="my-name-input" placeholder="이름 입력" style="margin-bottom:0;">
-    <button onclick="setMyName()" class="btn-blue" style="width:80px; border-radius:10px; border:none; cursor:pointer;">설정</button>
-  </div>
-  <div id="banner-area" class="banner-box" style="display:none; background:#f0f9ff; padding:12px; border-radius:12px; margin-bottom:15px; justify-content:space-between; align-items:center;">
-    <span id="display-name" style="font-weight:700;"></span>
-    <button onclick="editName()" style="font-size:11px; background:white; border:1px solid #ddd; padding:2px 8px; border-radius:4px;">수정</button>
-  </div>
-  <div class="stats">
-    <div class="stat"><div class="stat-num" id="cnt-active" style="color:var(--green);">0</div><div style="font-size:11px;">수강 중</div></div>
-    <div class="stat"><div class="stat-num" id="cnt-waiting" style="color:var(--amber);">0</div><div style="font-size:11px;">대기 중</div></div>
-    <div class="stat"><div class="stat-num" id="cnt-total">0</div><div style="font-size:11px;">오늘 총</div></div>
-  </div>
-  <div class="form-card" style="border:1px solid var(--border); border-radius:15px; padding:15px; background:white;">
-    <div class="form-row"><input type="text" id="in-name" placeholder="이름 미설정" readonly style="width:100px; margin-bottom:0;"><select id="in-lecture" style="margin-bottom:0;"></select></div>
-    <button id="btn-submit" class="btn btn-gray" disabled onclick="handleReg()" style="margin-top:10px;">신청하기</button>
-  </div>
-  <div id="user-list" style="margin-top:20px;"></div>
-</div>
-
-<div class="panel" id="panel-lectures">
-  <div style="font-size:14px; font-weight
+/* 관리자 서브 메뉴 */
+.btn-sub-menu { flex: 1; font-size: 11px; padding: 10px 5px; background: #f3f4f6; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; border: none; }
+.btn-sub-menu.active { background: var(--blue); color: white; font-weight: 700; }
+.admin-item{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #eee; font-size:13px;}
+.toast{position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:10px 20px;
