@@ -3,296 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📚 강의 수강 현황 (이름 자동 연동형)</title>
+<title>📚 강의 수강 현황 (시스템 통합판)</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --green:#22C55E;--green-light:#DCFCE7;--green-dark:#15803D;
-  --amber:#F59E0B;--amber-light:#FEF3C7;--amber-dark:#92400E;
-  --blue:#3B82F6;--blue-light:#DBEAFE;--blue-dark:#1E40AF;
-  --red:#EF4444;--red-light:#FEE2E2;--red-dark:#991B1B;
-  --gray:#6B7280;--gray-light:#F3F4F6;
-  --bg:#F9FAFB;--card:#fff;--border:#E5E7EB;
-  --text:#111827;--text-sub:#6B7280;
+  --green:#22C55E; --amber:#F59E0B; --blue:#3B82F6; --gray:#6B7280;
+  --bg:#F9FAFB; --card:#fff; --border:#E5E7EB; --text:#111827;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px;}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); padding-bottom:80px;}
 
-.tabbar{position:fixed;bottom:0;left:0;right:0;height:60px;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:20;}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-size:11px;color:var(--gray);transition:color .15s;}
-.tab.active{color:var(--blue-dark);font-weight:700;}
+/* 탭바 */
+.tabbar{position:fixed; bottom:0; left:0; right:0; height:60px; background:var(--card); border-top:1px solid var(--border); display:flex; z-index:100;}
+.tab{flex:1; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:13px; color:var(--gray);}
+.tab.active{color:var(--blue); font-weight:700; border-top:2px solid var(--blue);}
 
-.panel{display:none;}
+.panel{display:none; padding:1rem;}
 .panel.active{display:block;}
 
-.header{background:var(--card);border-bottom:1px solid var(--border);padding:1rem 1.25rem .875rem;position:sticky;top:0;z-index:10;}
-.header-top{display:flex;justify-content:space-between;align-items:center;}
-.app-title{font-size:17px;font-weight:700;}
-.live-dot{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--green-dark);background:var(--green-light);padding:3px 9px;border-radius:99px;}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.6s infinite;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.last-update{font-size:11px;color:var(--text-sub);margin-top:5px;}
+/* 헤더 및 레이아웃 */
+.header{background:var(--card); padding:1rem; border-bottom:1px solid var(--border); margin-bottom:10px;}
+.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px;}
+.stat{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center;}
+.stat-num{font-size:20px; font-weight:700;}
 
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:1rem 1.25rem 0;}
-.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
-.stat-num{font-size:24px;font-weight:700;line-height:1;}
-.stat-label{font-size:11px;color:var(--text-sub);margin-top:4px;}
-.stat-num.green{color:var(--green-dark);}
-.stat-num.amber{color:var(--amber-dark);}
+.setup-box{background:#E0F2FE; border:1px solid #BAE6FD; border-radius:12px; padding:15px; margin-bottom:15px; display:flex; gap:8px;}
+.banner-box{background:#F0F9FF; border:1px solid #BAE6FD; border-radius:12px; padding:12px 15px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;}
 
-.section{padding:1.25rem 1.25rem 0;}
-.section-title{font-size:12px;font-weight:700;color:var(--text-sub);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;}
+.form-card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:15px;}
+.form-row{display:flex; gap:8px; margin-bottom:8px;}
+input, select, button, textarea{font-family:inherit; font-size:14px; padding:10px; border-radius:10px; border:1px solid var(--border); outline:none;}
+textarea{width:100%; resize:none; margin-bottom:8px;}
 
-.user-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 14px;display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-.user-card.mine{border-color:#93C5FD;background:#F0F7FF;}
-.avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
-.av-green{background:var(--green-light);color:var(--green-dark);}
-.av-amber{background:var(--amber-light);color:var(--amber-dark);}
-.av-blue{background:var(--blue-light);color:var(--blue-dark);}
-.user-info{flex:1;min-width:0;}
-.user-name{font-size:14px;font-weight:500;}
-.user-lecture{font-size:12px;color:var(--text-sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.badge{font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;flex-shrink:0;}
-.b-green{background:var(--green-light);color:var(--green-dark);}
-.b-amber{background:var(--amber-light);color:var(--amber-dark);}
-.end-btn{font-size:12px;padding:5px 10px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text-sub);cursor:pointer;}
-
-.form-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:8px;}
-.form-row{display:flex;gap:7px;margin-bottom:7px;}
-input[type="text"],input[type="number"],input[type="password"],select{
-  font-family:'Noto Sans KR',sans-serif;font-size:14px;
-  background:var(--bg);border:1px solid var(--border);border-radius:10px;
-  padding:9px 11px;width:100%;outline:none;
+/* 관리자 서브 메뉴 버튼 */
+.btn-sub-menu {
+  flex: 1; font-size: 11px; padding: 10px 5px; background: #f3f4f6; 
+  border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: 0.2s;
 }
-input:read-only{background:#f0f0f0;color:#888;}
-.btn{font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;border:none;border-radius:12px;padding:12px;cursor:pointer;width:100%;transition:0.2s;}
-.btn-green{background:var(--green);color:#fff;}
-.btn-amber{background:var(--amber);color:#fff;}
-.btn-gray{background:var(--gray);color:#fff;opacity:0.5;cursor:not-allowed;}
-.btn-blue{background:var(--blue);color:#fff;}
+.btn-sub-menu.active { background: var(--blue); color: white; border-color: var(--blue); font-weight: 700; }
 
-.my-name-setup{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:12px;padding:11px 14px;margin-bottom:8px;display:flex;gap:8px;}
-.btn-set-name{font-size:13px;font-weight:700;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;}
+.admin-tool-box { background: #f9fafb; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-top: 10px; }
 
-.my-banner{margin:1rem 1.25rem 0;background:var(--blue-light);border:1px solid #BFDBFE;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:8px;}
-.btn-edit-name{font-size:11px;color:var(--blue-dark);background:white;border:1px solid #BFDBFE;border-radius:6px;padding:3px 8px;cursor:pointer;}
+.btn{width:100%; border:none; font-weight:700; cursor:pointer; padding:12px;}
+.btn-green{background:var(--green); color:white;}
+.btn-amber{background:var(--amber); color:white;}
+.btn-blue{background:var(--blue); color:white;}
+.btn-gray{background:var(--gray); color:white; opacity:0.5;}
 
-.notice-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;}
-.toast{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);background:#1F2937;color:#fff;font-size:13px;padding:10px 20px;border-radius:99px;z-index:300;opacity:0;transition:opacity .2s;pointer-events:none;}
+.user-card{background:white; border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:8px; display:flex; align-items:center; gap:10px;}
+.notice-card{background:white; border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:8px;}
+
+/* 계정 정보 소형 카드 (강의 목록 내부용) */
+.acc-mini-card { background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 10px; margin-top: 8px; font-size: 12px; }
+.acc-mini-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+
+.toast{position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:10px 20px; border-radius:20px; font-size:13px; opacity:0; transition:0.3s; z-index:1000;}
 .toast.show{opacity:1;}
 </style>
 </head>
 <body>
 
-<div id="setup-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:50;">
-  <div style="background:white;border-radius:20px 20px 0 0;padding:2rem 1.25rem;width:100%;">
-    <h2 style="font-size:17px;margin-bottom:10px;">🔧 Firebase 설정</h2>
-    <input type="text" id="cfg-url" placeholder="Database URL" style="margin-bottom:8px;display:block;width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;" />
-    <input type="text" id="cfg-key" placeholder="API Key" style="margin-bottom:8px;display:block;width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;" />
-    <input type="text" id="cfg-project" placeholder="Project ID" style="margin-bottom:12px;display:block;width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;" />
-    <button onclick="saveConfig()" style="width:100%;padding:12px;background:var(--green);color:white;border:none;border-radius:10px;font-weight:700;">저장</button>
-  </div>
+<div class="header">
+  <div style="display:flex; justify-content:space-between;"><b>📚 강의 수강 현황</b> <span id="conn-status" style="font-size:12px; color:var(--amber);">연결 중...</span></div>
 </div>
 
 <div class="panel active" id="panel-status">
-  <div class="header">
-    <div class="header-top"><span class="app-title">📚 강의 수강 현황</span><span class="live-dot"><span class="dot"></span>실시간</span></div>
-    <div class="last-update" id="last-update">연결 중...</div>
+  <div id="setup-area" class="setup-box">
+    <input type="text" id="my-name-input" placeholder="이름을 입력하세요" style="flex:1;" maxlength="8">
+    <button onclick="setMyName()" style="background:var(--blue); color:white; border:none; padding:0 15px;">설정</button>
   </div>
-
-  <div id="my-name-setup" class="my-name-setup" style="display:none; margin:1rem 1.25rem 0;">
-    <input type="text" id="my-name-input" placeholder="이름을 입력하세요" maxlength="8" style="flex:1;" />
-    <button class="btn-set-name" onclick="setMyName()">설정</button>
-  </div>
-  <div id="my-banner" class="my-banner" style="display:none;">
-    <div style="flex:1;"><span id="my-banner-name" style="font-weight:700;color:var(--blue-dark);"></span>님</div>
-    <button class="btn-edit-name" onclick="editName()">수정</button>
+  
+  <div id="banner-area" class="banner-box" style="display:none;">
+    <span id="display-name" style="font-weight:700;"></span>
+    <button onclick="editName()" style="font-size:11px; background:white;">수정</button>
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="stat-num green" id="cnt-active">0</div><div class="stat-label">수강 중</div></div>
-    <div class="stat"><div class="stat-num amber" id="cnt-waiting">0</div><div class="stat-label">대기 중</div></div>
-    <div class="stat"><div class="stat-num" id="cnt-total">0</div><div class="stat-label">오늘 총</div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">수강 등록</div>
-    <div class="form-card">
-      <div class="form-row">
-        <input type="text" id="in-name" placeholder="프로필을 먼저 설정하세요" style="max-width:110px;" readonly />
-        <select id="in-lecture" style="flex:1;" onchange="updateStatusButton()"></select>
-      </div>
-      <div class="form-row">
-        <button id="btn-status-toggle" class="btn btn-gray" onclick="handleRegister()" disabled>강의를 선택하세요</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">현재 접속자</div>
-    <div id="user-list"></div>
-  </div>
-</div>
-
-<div class="panel" id="panel-notice">
-  <div class="header"><span class="app-title">📋 공지 & 계정 정보</span></div>
-  <div class="section"><div class="section-title">로그인 정보</div><div id="account-list"></div></div>
-  <div class="section"><div class="section-title">공지사항</div><div id="notice-list"></div></div>
-  <div class="section">
-    <div onclick="toggleAdmin()" style="cursor:pointer;font-size:12px;color:var(--text-sub);padding:20px 0;">🔑 관리자 메뉴</div>
-    <div id="admin-panel" style="display:none;">
-      <div class="form-card">
-        <input type="password" id="admin-pw-input" placeholder="비밀번호" style="width:100px;margin-bottom:5px;" />
-        <button onclick="checkAdminPw()">확인</button>
-        <div id="admin-tools" style="display:none;margin-top:10px;">
-          <input type="text" id="lec-input" placeholder="강의명" />
-          <input type="number" id="lec-cap" placeholder="정원" value="1" style="margin:5px 0;" />
-          <button onclick="addLecture()" style="width:100%;">강의 추가</button>
-          <div id="lec-manage-list" style="margin-top:10px;font-size:11px;"></div>
-          <hr style="margin:15px 0;">
-          <input type="text" id="acc-label" placeholder="사이트명" />
-          <input type="text" id="acc-id" placeholder="ID" style="margin:5px 0;" />
-          <input type="text" id="acc-pw" placeholder="PW" />
-          <button onclick="addAccount()" style="width:100%;margin-top:5px;">계정 추가</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="panel" id="panel-lectures">
-  <div class="header"><span class="app-title">🎓 강의 목록</span></div>
-  <div class="section"><div id="lecture-display-list"></div></div>
-</div>
-
-<div class="tabbar">
-  <div class="tab active" onclick="switchTab('status')">📊 수강현황</div>
-  <div class="tab" onclick="switchTab('lectures')">🎓 강의목록</div>
-  <div class="tab" onclick="switchTab('notice')">📋 공지&계정</div>
-</div>
-<div class="toast" id="toast"></div>
-
-<script>
-let db=null, usersRef=null, noticeRef=null, accountRef=null, lectureRef=null, adminRef=null;
-let users={}, lectures=[], accounts={}, notices={};
-let myName=localStorage.getItem('my_name')||'';
-let currentRegStatus = 'active';
-
-function switchTab(t){
-  ['status','lectures','notice'].forEach(id=>{
-    document.getElementById('panel-'+id).classList.toggle('active',id===t);
-  });
-}
-
-function loadConfig(){
-  const url=localStorage.getItem('fb_url'), key=localStorage.getItem('fb_key'), prj=localStorage.getItem('fb_project');
-  if(!url||!key||!prj){ document.getElementById('setup-overlay').style.display='flex'; return; }
-  initFirebase(url,key,prj);
-  updateMyNameUI();
-}
-function saveConfig(){
-  localStorage.setItem('fb_url',document.getElementById('cfg-url').value);
-  localStorage.setItem('fb_key',document.getElementById('cfg-key').value);
-  localStorage.setItem('fb_project',document.getElementById('cfg-project').value);
-  location.reload();
-}
-function initFirebase(u,k,p){
-  const app=firebase.initializeApp({apiKey:k,databaseURL:u,projectId:p});
-  db=firebase.database(app);
-  usersRef=db.ref('lecture_users'); noticeRef=db.ref('notices');
-  accountRef=db.ref('accounts'); lectureRef=db.ref('lectures'); adminRef=db.ref('admin_pw');
-  listenAll();
-}
-function listenAll(){
-  usersRef.on('value',snap=>{users=snap.val()||{}; renderUsers(); updateStatusButton();});
-  noticeRef.on('value',snap=>{notices=snap.val()||{}; renderNotices();});
-  accountRef.on('value',snap=>{accounts=snap.val()||{}; renderAccounts();});
-  lectureRef.on('value',snap=>{
-    lectures=snap.val()||[]; if(!Array.isArray(lectures)) lectures=Object.values(lectures);
-    renderLectureSelect(); renderLectureManage(); renderLectureDisplay();
-  });
-  document.getElementById('last-update').textContent='실시간 연결됨 · '+new Date().toLocaleTimeString();
-}
-
-// ── 프로필 및 자동 이름 입력 로직 ──
-function setMyName(){
-  const val=document.getElementById('my-name-input').value.trim();
-  if(!val){showToast('이름을 입력하세요'); return;}
-  myName=val; localStorage.setItem('my_name',myName);
-  updateMyNameUI();
-  showToast(myName+'님, 설정되었습니다.');
-}
-function editName(){
-  localStorage.removeItem('my_name');
-  myName='';
-  updateMyNameUI();
-}
-function updateMyNameUI(){
-  const setup=document.getElementById('my-name-setup'), banner=document.getElementById('my-banner'), inName=document.getElementById('in-name');
-  if(myName){
-    setup.style.display='none'; banner.style.display='flex';
-    document.getElementById('my-banner-name').textContent='👤 '+myName;
-    inName.value = myName; // 등록 폼에 자동 입력
-  } else {
-    setup.style.display='flex'; banner.style.display='none';
-    inName.value = ''; // 이름 없으면 비움
-  }
-  updateStatusButton();
-}
-
-function updateStatusButton(){
-  const lecName = document.getElementById('in-lecture').value;
-  const btn = document.getElementById('btn-status-toggle');
-  if(!myName){ btn.textContent='프로필을 먼저 설정하세요'; btn.className='btn btn-gray'; btn.disabled=true; return; }
-  if(!lecName){ btn.textContent='강의를 선택하세요'; btn.className='btn btn-gray'; btn.disabled=true; return; }
-  btn.disabled=false;
-  const lecObj = lectures.find(l => l.name === lecName);
-  const cap = lecObj ? (parseInt(lecObj.cap) || 1) : 1;
-  const activeCount = Object.values(users).filter(u => u.lecture === lecName && u.status === 'active').length;
-  if(activeCount < cap){ btn.textContent='🟢 수강 신청하기'; btn.className='btn btn-green'; currentRegStatus='active'; }
-  else { btn.textContent='🟡 대기 등록하기'; btn.className='btn btn-amber'; currentRegStatus='waiting'; }
-}
-
-function handleRegister(){
-  if(!myName){showToast('프로필에서 이름을 먼저 설정하세요'); return;}
-  const isDup = Object.values(users).some(u => u.name === myName);
-  if(isDup){showToast('⚠️ 이미 등록되어 있습니다.'); return;}
-  usersRef.push({name:myName, lecture:document.getElementById('in-lecture').value, status:currentRegStatus, ts:Date.now()});
-  showToast('등록 완료!');
-}
-
-// ── 데이터 렌더링 ──
-function renderUsers(){
-  const list=document.getElementById('user-list'), arr=Object.entries(users).sort((a,b)=>a[1].ts-b[1].ts);
-  const active=arr.filter(u=>u[1].status==='active'), waiting=arr.filter(u=>u[1].status==='waiting');
-  document.getElementById('cnt-active').textContent=active.length;
-  document.getElementById('cnt-waiting').textContent=waiting.length;
-  document.getElementById('cnt-total').textContent=active.length+waiting.length;
-  if(!arr.length){list.innerHTML='<div class="empty">접속자가 없습니다.</div>';return;}
-  list.innerHTML=arr.map(([id,u])=>`
-    <div class="user-card ${myName===u.name?'mine':''}">
-      <div class="avatar ${u.status==='active'?'av-green':'av-amber'}">${u.name.slice(0,2)}</div>
-      <div class="user-info"><b>${u.name}</b><br><small>${u.lecture}</small></div>
-      <span class="badge ${u.status==='active'?'b-green':'b-amber'}">${u.status==='active'?'수강':'대기'}</span>
-      <button class="end-btn" onclick="usersRef.child('${id}').remove()">종료</button>
-    </div>`).join('');
-}
-function renderLectureSelect(){ document.getElementById('in-lecture').innerHTML='<option value="">강의 선택</option>'+lectures.map(l=>`<option value="${l.name}">${l.name}</option>`).join(''); }
-function renderLectureManage(){ document.getElementById('lec-manage-list').innerHTML=lectures.map((l,i)=>`<div>${l.name}(${l.cap}) <button onclick="lectures.splice(${i},1);lectureRef.set(lectures);">X</button></div>`).join(''); }
-function renderLectureDisplay(){ document.getElementById('lecture-display-list').innerHTML=lectures.map(l=>`<div class="notice-card"><b>${l.name}</b> (정원 ${l.cap}) <button onclick="quickReg('${l.name}')">선택</button></div>`).join(''); }
-function quickReg(n){ document.getElementById('in-lecture').value=n; switchTab('status'); updateStatusButton(); }
-function checkAdminPw(){ adminRef.once('value',s=>{ if(document.getElementById('admin-pw-input').value===(s.val()||'admin1234')) document.getElementById('admin-tools').style.display='block'; }); }
-function addLecture(){ const n=document.getElementById('lec-input').value, c=document.getElementById('lec-cap').value; if(n&&c){lectures.push({name:n, cap:c}); lectureRef.set(lectures); document.getElementById('lec-input').value='';} }
-function addAccount(){ accountRef.push({label:document.getElementById('acc-label').value, id:document.getElementById('acc-id').value, pw:document.getElementById('acc-pw').value}); showToast('계정 저장됨'); }
-function renderAccounts(){ document.getElementById('account-list').innerHTML=Object.values(accounts).map(a=>`<div class="notice-card"><b>${a.label}</b><br>ID: ${a.id} / PW: ${a.pw}</div>`).join(''); }
-function renderNotices(){ document.getElementById('notice-list').innerHTML=Object.values(notices).map(n=>`<div class="notice-card"><b>${n.title}</b><br>${n.body}</div>`).join(''); }
-function toggleAdmin(){ const p=document.getElementById('admin-panel'); p.style.display=p.style.display==='none'?'block':'none'; }
-function showToast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
-
-loadConfig();
-</script>
-</body>
-</html>
+    <div class="stat"><div class="stat-num" id="cnt-active" style="color:var(--green);">0</div><div style="font-size:11px;">수강 중</div></div>
+    <div class="stat"><div class="stat-num" id="cnt-waiting" style
