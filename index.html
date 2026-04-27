@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📚 스마트 수강 관리 및 철저한 알림</title>
+<title>📚 Muer 수강 시스템</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -29,6 +29,7 @@ body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:#111; pa
 .btn-blue{background:var(--blue); color:#fff;}
 .btn-green{background:var(--green); color:#fff;}
 .btn-amber{background:var(--amber); color:#fff;}
+.btn-gray{background:var(--gray); color:#fff;}
 
 .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:15px;}
 .stat{background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px; text-align:center;}
@@ -36,9 +37,16 @@ body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:#111; pa
 
 input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); margin-bottom:8px; outline:none; font-family:inherit;}
 .acc-info-box { background:#f0f7ff; border-radius:8px; padding:10px; margin-top:10px; font-size:13px; border:1px solid #dbeafe; line-height:1.6; }
+
+/* 알림 설정 배너 */
+.noti-fix-bar { background:#312e81; color:white; padding:10px; text-align:center; font-size:12px; cursor:pointer; }
 </style>
 </head>
 <body>
+
+<div id="noti-fix-bar" class="noti-fix-bar" onclick="requestNotification()">
+    ⚠️ 알림이 안 오나요? 여기를 클릭해서 권한을 다시 허용해 보세요!
+</div>
 
 <div class="overlay" id="name-setup-overlay" style="display:none;">
   <div class="popup" style="text-align:center;">
@@ -49,25 +57,10 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
 </div>
 
 <div class="overlay" id="turn-popup-overlay">
-  <div class="popup" style="text-align:center; border:3px solid var(--amber);">
-    <h2 style="color:var(--amber); margin-bottom:10px;">🔔 수강 차례입니다!</h2>
-    <p id="turn-popup-msg" style="margin-bottom:20px; line-height:1.6;"></p>
-    <button onclick="document.getElementById('turn-popup-overlay').style.display='none'" class="btn btn-amber">확인</button>
-  </div>
-</div>
-
-<div class="overlay" id="admin-overlay">
-  <div class="popup">
-    <button class="close-btn" onclick="closeAdmin()">✕</button>
-    <h2 style="font-size:18px; margin-bottom:15px;">⚙️ 관리 시스템</h2>
-    <div style="display:flex; gap:5px; margin-bottom:15px;">
-        <button onclick="showSub('ntc',this)" class="btn-sub active" style="flex:1; font-size:11px; padding:10px; border:none; border-radius:8px; cursor:pointer; background:var(--blue); color:white;">공지</button>
-        <button onclick="showSub('lec',this)" class="btn-sub" style="flex:1; font-size:11px; padding:10px; border:none; border-radius:8px; cursor:pointer; background:#f3f4f6;">강의</button>
-        <button onclick="showSub('acc',this)" class="btn-sub" style="flex:1; font-size:11px; padding:10px; border:none; border-radius:8px; cursor:pointer; background:#f3f4f6;">계정</button>
-    </div>
-    <div id="sub-ntc" class="tool-box"><input type="text" id="ntc-title" placeholder="제목"><textarea id="ntc-body" rows="3" placeholder="내용"></textarea><button onclick="addNotice()" class="btn btn-blue">저장</button><div id="ntc-mng-list" style="margin-top:10px;"></div></div>
-    <div id="sub-lec" class="tool-box" style="display:none;"><input type="text" id="lec-name" placeholder="강의명"><input type="number" id="lec-cap" placeholder="정원"><select id="lec-acc-select"></select><button onclick="addLecture()" class="btn btn-green">저장</button><div id="lec-mng-list" style="margin-top:10px;"></div></div>
-    <div id="sub-acc" class="tool-box" style="display:none;"><input type="text" id="acc-label" placeholder="사이트명"><input type="text" id="acc-owner" placeholder="주인"><div style="display:flex; gap:5px;"><input type="text" id="acc-id" placeholder="ID"><input type="text" id="acc-pw" placeholder="PW"></div><button id="btn-acc-save" onclick="addAccount()" class="btn btn-gray">저장</button><div id="acc-mng-list" style="margin-top:10px;"></div></div>
+  <div class="popup" style="text-align:center; border:4px solid var(--amber);">
+    <h2 style="color:var(--amber); margin-bottom:10px;">🔔 지금 수강하세요!</h2>
+    <p id="turn-popup-msg" style="margin-bottom:20px; line-height:1.6; font-weight:500;"></p>
+    <button onclick="document.getElementById('turn-popup-overlay').style.display='none'" class="btn btn-amber">확인했습니다</button>
   </div>
 </div>
 
@@ -82,7 +75,7 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
 <div class="panel active" id="panel-status">
     <div class="card" style="background:#eff6ff; border:none; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
         <span id="display-name" style="font-weight:700;">👤 불러오는 중...</span>
-        <button onclick="testNoti()" style="font-size:10px; background:#fff; border:1px solid #ddd; padding:4px 8px; border-radius:6px; cursor:pointer;">🔔 알림 테스트</button>
+        <button onclick="testNoti()" style="font-size:10px; background:#fff; border:1px solid #ddd; padding:4px 8px; border-radius:6px; cursor:pointer;">🔔 알림/소리 테스트</button>
     </div>
     
     <div class="stats">
@@ -126,7 +119,7 @@ function goTab(id, el){
     if(el) el.classList.add('active');
 }
 
-/** Firebase 설정 **/
+/** Firebase 설정 (API KEY 포함) **/
 const firebaseConfig = {
     apiKey: "AIzaSyBy4_hmtnhYbbC7icOtajmpGvix4LO3Xhk",
     databaseURL: "https://muer-love-default-rtdb.firebaseio.com/",
@@ -139,53 +132,50 @@ const uRef=db.ref('lecture_users'), lRef=db.ref('lectures'), nRef=db.ref('notice
 
 let lectures=[], users={}, progressData={}, notices={}, accounts={}, myName=localStorage.getItem('my_name')||'', lastStatus=null;
 
-/** [보강] 컴퓨터 시스템 알림 함수 **/
+// [추가] 알림 사운드 객체 생성
+const notiSound = new Audio('https://t1.daumcdn.net/kakaotalk/public/sound/talk.mp3');
+
+/** 알림 권한 요청 **/
+function requestNotification() {
+    if (!("Notification" in window)) return alert("알림을 지원하지 않는 브라우저입니다.");
+    Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+            document.getElementById('noti-fix-bar').style.display = 'none';
+            new Notification("알림 설정 성공!", { body: "이제 수강 차례가 되면 소리와 함께 알림이 울립니다." });
+        } else {
+            alert("알림 권한이 차단되어 있습니다. 주소창의 자물쇠 아이콘을 눌러 허용으로 바꿔주세요.");
+        }
+    });
+}
+
+/** [강화] 시스템 알림 + 사운드 전송 **/
 function sendAlert(title, body) {
-    // 1. 브라우저 외부 알림 (다른 탭에 있을 때)
+    // 1. 소리 알림 (다른 탭에 있어도 들림)
+    notiSound.play().catch(e => console.log("소리 재생 실패 (사용자 상호작용 필요)"));
+
+    // 2. 브라우저 외부 시스템 알림
     if (Notification.permission === "granted") {
-        try {
-            const n = new Notification(title, { 
-                body: body,
-                icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png',
-                silent: false // 소리 알림 시도
-            });
-            n.onclick = () => { window.focus(); n.close(); };
-        } catch (e) { console.log("알림 전송 에러", e); }
+        const n = new Notification(title, { 
+            body: body,
+            icon: 'https://cdn-icons-png.flaticon.com/512/3119/3119338.png',
+            requireInteraction: true // 사용자가 닫을 때까지 알림 유지
+        });
+        n.onclick = () => { window.focus(); n.close(); };
     }
-    // 2. 내부 팝업 알림 (현재 사이트에 있을 때)
+    
+    // 3. 사이트 내 팝업
     document.getElementById('turn-popup-msg').innerText = body;
     document.getElementById('turn-popup-overlay').style.display = 'flex';
 }
 
 function testNoti() {
-    if (Notification.permission !== "granted") {
-        alert("알림 권한이 없습니다. 대기 등록 시 나오는 팝업에서 '허용'을 먼저 해주세요.");
-        return;
-    }
-    toast("5초 후 시스템 알림이 울립니다. 지금 다른 탭을 보세요!");
+    toast("5초 후 소리와 함께 알림이 옵니다. 다른 탭을 열어보세요!");
     setTimeout(() => {
-        sendAlert("🔔 알림 작동 테스트", "다른 사이트를 보고 있어도 이렇게 알림이 옵니다!");
+        sendAlert("🔔 알림 테스트 완료", "정상적으로 알림과 소리가 작동합니다!");
     }, 5000);
 }
 
-/** 수강 신청 및 알림 권한 요청 **/
-async function handleReg(){
-    if(Object.values(users).some(u=>u.name===myName)) return alert("이미 등록되어 있습니다.");
-    const ln=document.getElementById('in-lecture').value, lc=lectures.find(l=>l.name===ln);
-    const ac=Object.values(users).filter(u=>u.lecture===ln&&u.status==='active').length;
-    const status = ac<(lc?lc.cap:1) ? 'active' : 'waiting';
-
-    // 대기 신청 시 알림 권한 무조건 다시 확인
-    if (Notification.permission !== 'granted') {
-        const res = await Notification.requestPermission();
-        if (res !== 'granted') alert("알림을 거부하시면 수강 차례가 되어도 소식을 받을 수 없습니다.");
-    }
-
-    uRef.push({name:myName, lecture:ln, status:status, ts:Date.now()});
-    toast(status === 'active' ? "즉시 수강 시작!" : "대기열에 등록되었습니다.");
-}
-
-/** 데이터 리스너 **/
+/** 실시간 데이터 감시 **/
 function listen(){
   lRef.on('value', s=>{
     lectures = Object.values(s.val()||[]);
@@ -198,10 +188,8 @@ function listen(){
   uRef.on('value', s=>{
     const newUsers = s.val()||{};
     const myInfo = Object.values(newUsers).find(u => u.name === myName);
-    
-    // 상태가 'waiting'에서 'active'로 변하는 순간 알림 발송
     if (myInfo && lastStatus === 'waiting' && myInfo.status === 'active') {
-        sendAlert("🎓 수강 차례입니다!", `기다려주셔서 감사합니다. [${myInfo.lecture}] 수강이 지금 시작되었습니다!`);
+        sendAlert("🎓 지금 수강하세요!", `대기 순번이 되어 [${myInfo.lecture}] 수강이 시작되었습니다!`);
     }
     lastStatus = myInfo ? myInfo.status : null;
     users = newUsers; renderUsers(); updateBtn(); checkAndPromote();
@@ -222,7 +210,7 @@ function checkAndPromote() {
     });
 }
 
-/** 렌더링 (보안: 본인만 삭제 가능) **/
+/** 렌더링 및 기능 **/
 function renderUsers(){
     const arr = Object.entries(users).sort((a,b)=>a[1].ts - b[1].ts);
     document.getElementById('stat-active').textContent = arr.filter(u=>u[1].status==='active').length;
@@ -238,15 +226,62 @@ function renderUsers(){
         </div>`).join('');
 }
 
-// ── 나머지 보조 로직 (강의 목록, 진도 등 동일) ──
-function renderLectures(){ document.getElementById('lecture-display-list').innerHTML = lectures.map(l=>{ let accHtml = ""; if(l.accId && accounts[l.accId]) { const a = accounts[l.accId]; accHtml = `<div class="acc-info-box"><b>🔑 연결 계정: ${a.label}</b><br>ID: ${a.id} / PW: ${a.pw}<br><small>주인: ${a.owner||'미지정'}</small></div>`; } return `<div class="card"><b>${l.name}</b> (정원 ${l.cap})${accHtml}</div>`; }).join('') || '<div class="card">등록된 강의 없음</div>'; }
-function loadUserProgress() { const target = document.getElementById('progress-user-input').value.trim(); const display = document.getElementById('progress-display'); const mySect = document.getElementById('my-progress-section'); if(!target) { display.innerHTML="이름을 입력하세요."; mySect.style.display='none'; return; } const userData = progressData[target]; if(userData) { display.innerHTML = Object.entries(userData).map(([lec, d]) => `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><b>[${lec}]</b> ${d.chapter}챕터 ${(target===myName)?`<button style="font-size:10px; border:none; padding:2px 5px;" onclick="pRef.child('${myName}').child('${lec}').remove()">삭제</button>`:''}</div>`).join(''); } else display.innerHTML = "기록 없음"; mySect.style.display = (target === myName) ? 'block' : 'none'; }
-function saveMyProgress() { const c=document.getElementById('progress-chapter-input').value, l=document.getElementById('progress-lecture-select').value; if(l&&c) pRef.child(myName).child(l).set({chapter:c, ts:Date.now()}).then(()=>toast("저장됨")); }
-function checkInitialName(){ if(!myName) document.getElementById('name-setup-overlay').style.display='flex'; else { document.getElementById('display-name').textContent = `👤 ${myName} 님`; document.getElementById('in-name').value = myName; document.getElementById('progress-user-input').value = myName; listen(); } }
-function saveInitialName(){ const v = document.getElementById('initial-name-input').value.trim(); if(!v) return alert("이름을 입력하세요!"); myName = v; localStorage.setItem('my_name', v); location.reload(); }
+function renderLectures(){
+    document.getElementById('lecture-display-list').innerHTML = lectures.map(l=>{
+        let accHtml = "";
+        if(l.accId && accounts[l.accId]) {
+            const a = accounts[l.accId];
+            accHtml = `<div class="acc-info-box"><b>🔑 연결 계정: ${a.label}</b><br>ID: ${a.id} / PW: ${a.pw}<br><small>주인: ${a.owner||'미지정'}</small></div>`;
+        }
+        return `<div class="card"><b>${l.name}</b> (정원 ${l.cap})${accHtml}</div>`;
+    }).join('') || '<div class="card">등록된 강의 없음</div>';
+}
+
+function loadUserProgress() {
+    const target = document.getElementById('progress-user-input').value.trim();
+    const display = document.getElementById('progress-display');
+    const mySect = document.getElementById('my-progress-section');
+    if(!target) { display.innerHTML="이름을 입력하세요."; mySect.style.display='none'; return; }
+    const userData = progressData[target];
+    if(userData) {
+        display.innerHTML = Object.entries(userData).map(([lec, d]) => `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><b>[${lec}]</b> ${d.chapter}챕터 ${(target===myName)?`<button style="font-size:10px; border:none; padding:2px 5px;" onclick="pRef.child('${myName}').child('${lec}').remove()">삭제</button>`:''}</div>`).join('');
+    } else display.innerHTML = "기록 없음";
+    mySect.style.display = (target === myName) ? 'block' : 'none';
+}
+
+/** 기초 초기화 로직 **/
+function checkInitialName(){
+    if(!myName) document.getElementById('name-setup-overlay').style.display='flex';
+    else {
+        document.getElementById('display-name').textContent = `👤 ${myName} 님`;
+        document.getElementById('in-name').value = myName;
+        document.getElementById('progress-user-input').value = myName;
+        if(Notification.permission !== "granted") document.getElementById('noti-fix-bar').style.display = 'block';
+        listen();
+    }
+}
+function saveInitialName(){
+    const v = document.getElementById('initial-name-input').value.trim();
+    if(!v) return alert("이름을 입력하세요!");
+    myName = v; localStorage.setItem('my_name', v);
+    location.reload();
+}
 function forceReset(){ if(confirm("이용자를 변경하시겠습니까?")){ localStorage.removeItem('my_name'); location.reload(); } }
-function updateBtn(){ const btn=document.getElementById('btn-submit'), ln=document.getElementById('in-lecture').value; if(!myName||!ln){btn.disabled=true; return;} const lc=lectures.find(l=>l.name===ln), ac=Object.values(users).filter(u=>u.lecture===ln&&u.status==='active').length; btn.disabled=false; btn.className=ac<(lc?lc.cap:1)?"btn btn-green":"btn btn-amber"; btn.textContent=ac<(lc?lc.cap:1)?"🟢 즉시 수강하기":"🟡 대기 등록하기"; }
-function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 2000); }
+async function handleReg(){
+    if(Object.values(users).some(u=>u.name===myName)) return alert("이미 등록되어 있습니다.");
+    const ln=document.getElementById('in-lecture').value, lc=lectures.find(l=>l.name===ln);
+    const ac=Object.values(users).filter(u=>u.lecture===ln&&u.status==='active').length;
+    const status = ac<(lc?lc.cap:1) ? 'active' : 'waiting';
+
+    if (status === 'waiting' && Notification.permission !== 'granted') {
+        alert("대기 순번 알림을 받으려면 알림 허용이 필요합니다.");
+        await Notification.requestPermission();
+    }
+    uRef.push({name:myName, lecture:ln, status:status, ts:Date.now()});
+    toast("등록 완료!");
+}
+
+/** 관리자 도구 **/
 function openAdmin() { document.getElementById('admin-overlay').style.display='flex'; renderAdminNtc(); renderAdminLec(); renderAdminAcc(); }
 function closeAdmin() { document.getElementById('admin-overlay').style.display='none'; }
 function showSub(id, btn){ document.querySelectorAll('.tool-box').forEach(b=>b.style.display='none'); document.querySelectorAll('.btn-sub').forEach(b=>b.style.background='#f3f4f6'); document.getElementById('sub-'+id).style.display='block'; btn.style.background='var(--blue)'; btn.style.color='#fff'; }
@@ -258,6 +293,9 @@ function renderAdminLec(){ document.getElementById('lec-mng-list').innerHTML=lec
 function renderAdminAcc(){ document.getElementById('acc-mng-list').innerHTML=Object.entries(accounts).map(([id,a])=>`<div>${a.label} <button onclick="aRef.child('${id}').remove()">X</button></div>`).join(''); }
 function renderNotices(){ document.getElementById('notice-list').innerHTML=Object.entries(notices).map(([id,n])=>`<div class="card" onclick="alert('${n.body.replace(/\n/g, '\\n')}')"><b>${n.title}</b></div>`).join(''); }
 function renderAccBoard(){ document.getElementById('account-board-list').innerHTML=Object.values(accounts).map(a=>`<div class="card" style="border-left:4px solid var(--blue); background:#f9fafb;"><b>${a.label}</b> (주인:${a.owner})<br>ID: ${a.id} / PW: ${a.pw}</div>`).join(''); }
+function updateBtn(){ const btn=document.getElementById('btn-submit'), ln=document.getElementById('in-lecture').value; if(!myName||!ln){btn.disabled=true; return;} const lc=lectures.find(l=>l.name===ln), ac=Object.values(users).filter(u=>u.lecture===ln&&u.status==='active').length; btn.disabled=false; btn.className=ac<(lc?lc.cap:1)?"btn btn-green":"btn btn-amber"; btn.textContent=ac<(lc?lc.cap:1)?"🟢 즉시 수강하기":"🟡 대기 등록하기"; }
+function saveMyProgress() { const c=document.getElementById('progress-chapter-input').value, l=document.getElementById('progress-lecture-select').value; if(l&&c) pRef.child(myName).child(l).set({chapter:c, ts:Date.now()}).then(()=>toast("저장됨")); }
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 2000); }
 
 checkInitialName();
 </script>
