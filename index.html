@@ -3,70 +3,96 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📚 강의 현황판 (긴급 복구 완료)</title>
+<title>📚 강의 현황판 </title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{ --blue:#3B82F6; --gray:#6B7280; --bg:#F3F4F6; }
+:root{ --blue:#3B82F6; --bg:#F3F4F6; }
 *{box-sizing:border-box; margin:0; padding:0;}
-body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:#111; min-height:100vh;}
-
-/* 설정창 (기본으로 보이게 설정) */
-#setup-overlay {
-  position:fixed; inset:0; background:rgba(0,0,0,0.8); 
-  display:flex; align-items:center; justify-content:center; z-index:9999;
-}
-.setup-panel {
-  background:white; padding:30px; border-radius:20px; width:90%; max-width:400px;
-}
-input { width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:10px; outline:none; }
-.btn { width:100%; padding:12px; border:none; border-radius:10px; font-weight:700; cursor:pointer; background:var(--blue); color:white; }
-
-/* 메인 화면 레이아웃 */
+body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); min-height:100vh;}
+#setup-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.9); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.setup-panel { background:white; padding:30px; border-radius:20px; width:90%; max-width:400px; box-shadow:0 10px 30px rgba(0,0,0,0.5); }
+input { width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:10px; font-size:14px; }
+.btn { width:100%; padding:15px; border:none; border-radius:10px; font-weight:700; cursor:pointer; background:var(--blue); color:white; font-size:16px; }
 .header { background:white; padding:20px; border-bottom:1px solid #ddd; text-align:center; font-weight:700; }
-.content { padding:20px; text-align:center; }
-.tabbar { position:fixed; bottom:0; left:0; right:0; height:60px; background:white; border-top:1px solid #ddd; display:flex; }
-.tab { flex:1; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--gray); cursor:pointer; }
-.tab.active { color:var(--blue); font-weight:700; }
 </style>
 </head>
 <body>
 
 <div id="setup-overlay">
   <div class="setup-panel">
-    <h2 style="margin-bottom:15px; font-size:18px;">🔧 Firebase 연결 설정</h2>
-    <p style="font-size:12px; color:gray; margin-bottom:15px;">이 정보가 입력되어야 화면이 나타납니다.</p>
-    <input type="text" id="cfg-url" placeholder="Firebase Database URL (https://...)">
-    <input type="text" id="cfg-key" placeholder="API Key">
-    <input type="text" id="cfg-project" placeholder="Project ID">
+    <h2 style="margin-bottom:15px; font-size:18px;">🔧 Firebase 정보 입력</h2>
+    <input type="text" id="cfg-url" placeholder="Database URL (https://...)">
+    <input type="text" id="cfg-key" placeholder="API Key (프로젝트 설정에서 복사)">
+    <input type="text" id="cfg-project" placeholder="Project ID (고유 아이디)">
     <button onclick="saveConfig()" class="btn">설정 저장 및 사이트 시작</button>
-    <p style="font-size:10px; color:#aaa; margin-top:15px; text-align:center;">설정 후에도 안 보이면 새로고침을 해주세요.</p>
+    <p style="margin-top:15px; font-size:11px; color:#666; line-height:1.5;">
+      * 버튼을 누르면 "저장되었습니다" 알림이 떠야 합니다.<br>
+      * 반응이 없다면 브라우저를 껐다 켜보세요.
+    </p>
   </div>
 </div>
 
-<div class="header">
-  📚 강의 수강 현황판
-  <span id="conn-dot" style="display:inline-block; width:8px; height:8px; background:orange; border-radius:50%; margin-left:5px;"></span>
-</div>
-
-<div class="content" id="main-content">
-  <p style="margin-top:50px; color:#666;">데이터를 불러오는 중입니다...</p>
-</div>
-
-<div class="tabbar">
-  <div class="tab active">📊 현황</div>
-  <div class="tab">🎓 강의</div>
-  <div class="tab">🔑 계정</div>
-  <div class="tab" onclick="forceReset()" style="color:red;">⚙️ 초기화</div>
+<div class="header">📚 강의 수강 현황판</div>
+<div id="main-content" style="padding:20px; text-align:center;">
+    <p id="msg">연결을 시도하고 있습니다...</p>
 </div>
 
 <script>
-// 1. 저장된 정보 가져오기
-const u = localStorage.getItem('fb_url'), k = localStorage.getItem('fb_key'), p = localStorage.getItem('fb_project');
+// 버튼 클릭 함수를 가장 위로 올렸습니다 (오류 방지)
+function saveConfig() {
+    const url = document.getElementById('cfg-url').value.trim();
+    const key = document.getElementById('cfg-key').value.trim();
+    const prj = document.getElementById('cfg-project').value.trim();
+    
+    if(!url || !key || !prj) {
+        alert("모든 빈칸을 채워주세요!");
+        return;
+    }
+    
+    // 로컬 스토리지에 저장
+    localStorage.setItem('fb_url', url);
+    localStorage.setItem('fb_key', key);
+    localStorage.setItem('fb_project', prj);
+    
+    alert("설정이 저장되었습니다! 사이트를 다시 로드합니다.");
+    location.reload();
+}
 
-// 2. 정보가 있으면 설정창 숨기고 연결 시도
+// 1. 저장된 데이터 확인
+const u = localStorage.getItem('fb_url');
+const k = localStorage.getItem('fb_key');
+const p = localStorage.getItem('fb_project');
+
 if(u && k && p) {
-  document.getElementById('setup-overlay').style.display = 'none';
-  try {
-    const app = firebase.initializeApp({apiKey:k,
+    document.getElementById('setup-overlay').style.display = 'none';
+    
+    // Firebase 초기화
+    try {
+        const app = firebase.initializeApp({ apiKey: k, databaseURL: u, projectId: p });
+        const db = firebase.database(app);
+        
+        // 데이터 불러오기
+        db.ref('lectures').on('value', s => {
+            const data = s.val() || {};
+            let html = '<div style="text-align:left;"><b>🎓 현재 개설된 강의</b><hr style="margin:10px 0;">';
+            Object.values(data).forEach(l => {
+                html += `<div style="background:white; padding:15px; border-radius:12px; margin-bottom:10px; border:1px solid #ddd;">
+                            <b style="font-size:16px;">${l.name}</b><br>
+                            <span style="color:gray; font-size:12px;">정원: ${l.cap}명</span>
+                         </div>`;
+            });
+            document.getElementById('main-content').innerHTML = html + '</div>';
+        }, e => {
+            document.getElementById('msg').innerHTML = "❌ 권한이 없습니다.<br>Firebase 규칙을 확인해주세요.";
+        });
+    } catch(e) {
+        alert("연결 오류 발생! 정보를 다시 입력하세요.");
+        localStorage.clear();
+        location.reload();
+    }
+}
+</script>
+</body>
+</html>
