@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🔑 Muer 로그인 및 계정 관리 시스템</title>
+<title>🔑 Muer 로그인 </title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -68,15 +68,9 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
         <button onclick="showSub('ntc',this)" class="btn-sub active" style="flex:1; font-size:11px; padding:10px; border:none; border-radius:8px; cursor:pointer; background:var(--blue); color:white;">공지</button>
         <button onclick="showSub('acc',this)" class="btn-sub" style="flex:1; font-size:11px; padding:10px; border:none; border-radius:8px; cursor:pointer; background:#f3f4f6;">계정 설정</button>
     </div>
-    
     <div id="sub-ntc" class="tool-box"><input type="text" id="ntc-title" placeholder="제목"><textarea id="ntc-body" rows="3" placeholder="내용"></textarea><button id="btn-ntc-save" onclick="addNotice()" class="btn btn-blue">저장</button><div id="ntc-mng-list" style="margin-top:15px;"></div></div>
-    
     <div id="sub-acc" class="tool-box" style="display:none;">
-        <p style="font-size:11px; color:var(--gray); margin-bottom:10px;">※ 동시 로그인 정원은 기본 1명으로 설정됩니다.</p>
-        <input type="text" id="acc-label" placeholder="사이트명 (예: 넷플릭스)">
-        <input type="text" id="acc-owner" placeholder="계정 주인">
-        <input type="text" id="acc-id" placeholder="아이디"><input type="text" id="acc-pw" placeholder="비밀번호">
-        <input type="number" id="acc-cap" placeholder="동시 로그인 정원" value="1">
+        <input type="text" id="acc-label" placeholder="사이트명 (예: 넷플릭스)"><input type="text" id="acc-owner" placeholder="계정 주인"><input type="text" id="acc-id" placeholder="아이디"><input type="text" id="acc-pw" placeholder="비밀번호"><input type="number" id="acc-cap" placeholder="동시 로그인 정원" value="1">
         <button id="btn-acc-save" onclick="addAccount()" class="btn btn-gray">계정 저장</button>
         <div id="acc-mng-list" style="margin-top:15px;"></div>
     </div>
@@ -93,40 +87,20 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
 
 <div class="panel active" id="panel-status">
     <div class="card" id="display-name" style="background:#eff6ff; border:none; margin-bottom:15px; font-weight:700;">👤 불러오는 중...</div>
-    
     <div class="stats">
         <div class="stat"><span class="stat-num" id="stat-active" style="color:var(--green);">0</span><small>사용 중</small></div>
         <div class="stat"><span class="stat-num" id="stat-waiting" style="color:var(--amber);">0</span><small>대기 중</small></div>
         <div class="stat"><span class="stat-num" id="stat-total">0</span><small>전체</small></div>
     </div>
-
     <div class="card" style="border:2px solid var(--blue);">
         <div style="font-weight:700; margin-bottom:10px; font-size:14px;">🚀 로그인 신청</div>
         <div style="display:flex; gap:8px;">
             <input type="text" id="in-name" readonly style="width:90px; background:#f3f4f6;">
-            <select id="in-account" onchange="updateBtn()"><option value="">계정 불러오는 중...</option></select>
+            <select id="in-account" onchange="updateBtn()"><option value="">계정 선택</option></select>
         </div>
         <button id="btn-submit" class="btn btn-gray" disabled onclick="handleReg()">계정을 선택하세요</button>
     </div>
-    
     <div id="user-list"></div>
-</div>
-
-<div class="panel" id="panel-progress">
-    <div class="card">
-        <p style="font-size:12px; color:var(--gray); margin-bottom:8px;">이름을 입력하여 사용 진도를 조회하세요.</p>
-        <input type="text" id="progress-user-input" placeholder="조회할 이름 입력" oninput="loadUserProgress()">
-        <div id="progress-display" style="background:#f8fafc; padding:15px; border-radius:10px; min-height:100px; font-size:14px; margin-top:10px; border:1px dashed #ddd;"></div>
-    </div>
-    <div id="my-progress-section" class="card" style="display:none; border-top:2px solid var(--blue);">
-        <p style="font-weight:700; font-size:13px; margin-bottom:10px;">📖 내 사용 진도 업데이트</p>
-        <select id="progress-account-select" style="margin-bottom:8px;"></select>
-        <div style="display:flex; gap:8px; align-items:center;">
-            <input type="number" id="progress-chapter-input" placeholder="진도(챕터/화)" style="flex:1; margin-bottom:0;">
-            <b>진도</b>
-        </div>
-        <button onclick="saveMyProgress()" class="btn btn-blue" style="margin-top:10px;">저장하기</button>
-    </div>
 </div>
 
 <div class="panel" id="panel-accounts">
@@ -141,7 +115,6 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
 
 <div class="tabbar">
   <div class="tab active" onclick="goTab('status',this)">📊<span>현황</span></div>
-  <div class="tab" onclick="goTab('progress',this)">📖<span>진도</span></div>
   <div class="tab" onclick="goTab('accounts',this)">🔑<span>계정</span></div>
   <div class="tab" onclick="goTab('notice',this)">📋<span>공지</span></div>
 </div>
@@ -149,11 +122,12 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
 <div id="toast" style="position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 20px; border-radius:20px; font-size:12px; opacity:0; transition:0.3s; z-index:2000;"></div>
 
 <script>
-/** 탭 기능 **/
+/** 탭 전환 **/
 function goTab(id, el){
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('panel-' + id).classList.add('active');
+    const target = document.getElementById('panel-' + id);
+    if(target) target.classList.add('active');
     if(el) el.classList.add('active');
 }
 
@@ -166,17 +140,16 @@ const firebaseConfig = {
 
 const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-const uRef=db.ref('login_users'), nRef=db.ref('notices'), aRef=db.ref('accounts'), pRef=db.ref('progress');
+const uRef=db.ref('login_users'), nRef=db.ref('notices'), aRef=db.ref('accounts');
 
-let accounts={}, users={}, progressData={}, notices={}, myName=localStorage.getItem('my_name')||'', lastStatus=null, editTgt={type:null, id:null};
+let accounts={}, users={}, notices={}, myName=localStorage.getItem('my_name')||'', lastStatus=null, editTgt={type:null, id:null};
 
-/** 실시간 데이터 리스너 **/
+/** 실시간 리스너 **/
 function listen(){
   aRef.on('value', s=>{
     accounts = s.val() || {};
-    const options = '<option value="">계정 선택</option>' + Object.entries(accounts).map(([id, a])=>`<option value="${id}">${a.label}</option>`).join('');
-    document.getElementById('in-account').innerHTML = options;
-    document.getElementById('progress-account-select').innerHTML = options;
+    const opts = '<option value="">계정 선택</option>' + Object.entries(accounts).map(([id, a])=>`<option value="${id}">${a.label}</option>`).join('');
+    document.getElementById('in-account').innerHTML = opts;
     renderAccountBoard(); renderAdminAcc(); updateBtn();
   });
   
@@ -192,15 +165,12 @@ function listen(){
   });
 
   nRef.on('value', s=>{ notices = s.val()||{}; renderNotices(); renderAdminNtc(); });
-  pRef.on('value', s=>{ progressData = s.val()||{}; loadUserProgress(); });
 }
 
-/** 대기자 자동 승급 **/
 function checkAndPromote() {
     Object.entries(accounts).forEach(([accId, acc]) => {
         const activeCount = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length;
-        const cap = parseInt(acc.cap) || 1;
-        if (activeCount < cap) {
+        if (activeCount < (parseInt(acc.cap) || 1)) {
             const next = Object.entries(users).filter(([id, u]) => u.accId === accId && u.status === 'waiting').sort((a, b) => a[1].ts - b[1].ts)[0];
             if (next) uRef.child(next[0]).update({ status: 'active', ts: Date.now() });
         }
@@ -213,7 +183,6 @@ function renderUsers(){
     document.getElementById('stat-active').textContent = arr.filter(u=>u[1].status==='active').length;
     document.getElementById('stat-waiting').textContent = arr.filter(u=>u[1].status==='waiting').length;
     document.getElementById('stat-total').textContent = arr.length;
-    
     document.getElementById('user-list').innerHTML = arr.map(([id,u])=>`
         <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:12px;">
             <span><b>${u.name}</b> <small>(${accounts[u.accId]?.label || '삭제된 계정'})</small></span>
@@ -229,81 +198,46 @@ function renderAccountBoard(){
         <div class="card">
             <div style="display:flex; justify-content:space-between;"><b>${a.label}</b> <small>정원: ${a.cap || 1}명</small></div>
             <div class="acc-info-box">
-                <b>🔑 접속 정보</b><br>
-                ID: ${a.id} / PW: ${a.pw}<br>
+                <b>🔑 접속 정보</b><br>ID: ${a.id} / PW: ${a.pw}<br>
                 <small>👤 계정 주인: ${a.owner || '미지정'}</small>
             </div>
         </div>`).join('') || '<div class="card">등록된 계정이 없습니다.</div>';
 }
 
-/** 로그인 신청 로직 **/
+/** 로그인 신청 **/
 function updateBtn(){
     const btn=document.getElementById('btn-submit'), accId=document.getElementById('in-account').value;
     if(!myName || !accId) { btn.disabled=true; btn.className="btn btn-gray"; btn.textContent="계정을 선택하세요"; return; }
-    
-    const acc = accounts[accId];
     const activeCount = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length;
-    const cap = parseInt(acc?.cap) || 1;
-
     btn.disabled = false;
-    if(activeCount < cap) {
-        btn.className = "btn btn-green"; btn.textContent = "🟢 지금 로그인하기";
-    } else {
-        btn.className = "btn btn-amber"; btn.textContent = "🟡 사용 대기하기";
-    }
+    if(activeCount < (parseInt(accounts[accId]?.cap) || 1)) { btn.className = "btn btn-green"; btn.textContent = "🟢 지금 로그인하기"; }
+    else { btn.className = "btn btn-amber"; btn.textContent = "🟡 사용 대기하기"; }
 }
 
 function handleReg(){
     if(Object.values(users).some(u=>u.name===myName)) return alert("이미 로그인 중이거나 대기 중입니다.");
     const accId = document.getElementById('in-account').value;
     const activeCount = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length;
-    const cap = parseInt(accounts[accId]?.cap) || 1;
-    const status = activeCount < cap ? 'active' : 'waiting';
-    
+    const status = activeCount < (parseInt(accounts[accId]?.cap) || 1) ? 'active' : 'waiting';
     uRef.push({name:myName, accId:accId, status:status, ts:Date.now()});
-    toast(status === 'active' ? "로그인 시작!" : "대기열에 등록되었습니다.");
+    toast(status === 'active' ? "로그인 시작!" : "대기열 등록 완료");
 }
 
-/** 진도 관리 **/
-function loadUserProgress() {
-    const target = document.getElementById('progress-user-input').value.trim();
-    const display = document.getElementById('progress-display');
-    const mySect = document.getElementById('my-progress-section');
-    if(!target) { display.innerHTML="이름을 입력하세요."; mySect.style.display='none'; return; }
-    const userData = progressData[target];
-    if(userData) {
-        display.innerHTML = Object.entries(userData).map(([id, d]) => `
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:5px;">
-                <b>[${accounts[id]?.label || '삭제됨'}]</b> ${d.chapter} 진도
-                ${(target===myName)?`<button style="font-size:10px; border:none; padding:2px 5px;" onclick="pRef.child('${myName}').child('${id}').remove()">삭제</button>`:''}
-            </div>`).join('');
-    } else display.innerHTML = "기록 없음";
-    mySect.style.display = (target === myName) ? 'block' : 'none';
-}
-
-function saveMyProgress() {
-    const c=document.getElementById('progress-chapter-input').value, id=document.getElementById('progress-account-select').value;
-    if(id && c) pRef.child(myName).child(id).set({chapter:c, ts:Date.now()}).then(()=>toast("저장됨"));
-}
-
-/** 관리자 기능 (수정 포함) **/
+/** 관리자 기능 **/
 function openAdmin() { document.getElementById('admin-overlay').style.display='flex'; renderAdminNtc(); renderAdminAcc(); }
 function closeAdmin() { document.getElementById('admin-overlay').style.display='none'; resetForm(); }
 function showSub(id, btn){ document.querySelectorAll('.tool-box').forEach(b=>b.style.display='none'); document.querySelectorAll('.btn-sub').forEach(b=>b.style.background='#f3f4f6'); document.getElementById('sub-'+id).style.display='block'; btn.style.background='var(--blue)'; btn.style.color='#fff'; resetForm(); }
-
 function loadNtc(id) { editTgt={type:'ntc', id:id}; document.getElementById('ntc-title').value=notices[id].title; document.getElementById('ntc-body').value=notices[id].body; document.getElementById('btn-ntc-save').innerText="수정 완료"; }
 function addNotice(){ const t=document.getElementById('ntc-title').value; if(!t) return; const ref=editTgt.type==='ntc'?nRef.child(editTgt.id):nRef.push(); ref.set({title:t, body:document.getElementById('ntc-body').value, ts:Date.now()}).then(()=>resetForm()); }
-
 function loadAcc(id) { editTgt={type:'acc', id:id}; const a=accounts[id]; document.getElementById('acc-label').value=a.label; document.getElementById('acc-owner').value=a.owner; document.getElementById('acc-id').value=a.id; document.getElementById('acc-pw').value=a.pw; document.getElementById('acc-cap').value=a.cap||1; document.getElementById('btn-acc-save').innerText="수정 완료"; }
 function addAccount(){ const l=document.getElementById('acc-label').value; if(!l) return; const ref=editTgt.type==='acc'?aRef.child(editTgt.id):aRef.push(); ref.set({label:l, owner:document.getElementById('acc-owner').value, id:document.getElementById('acc-id').value, pw:document.getElementById('acc-pw').value, cap:document.getElementById('acc-cap').value}).then(()=>resetForm()); }
-
 function renderAdminNtc(){ document.getElementById('ntc-mng-list').innerHTML=Object.entries(notices).map(([id,n])=>`<div class="admin-item-row"><span>${n.title}</span><div><span onclick="loadNtc('${id}')" style="color:blue; cursor:pointer; margin-right:10px;">수정</span><span onclick="nRef.child('${id}').remove()" style="color:red; cursor:pointer;">삭제</span></div></div>`).join(''); }
 function renderAdminAcc(){ document.getElementById('acc-mng-list').innerHTML=Object.entries(accounts).map(([id,a])=>`<div class="admin-item-row"><span>${a.label}</span><div><span onclick="loadAcc('${id}')" style="color:blue; cursor:pointer; margin-right:10px;">수정</span><span onclick="aRef.child('${id}').remove()" style="color:red; cursor:pointer;">삭제</span></div></div>`).join(''); }
 function renderNotices(){ document.getElementById('notice-list').innerHTML=Object.entries(notices).sort((a,b)=>b[1].ts-a[1].ts).map(([id,n])=>`<div class="card" onclick="alert('${n.body.replace(/\n/g, '\\n')}')"><b>${n.title}</b></div>`).join(''); }
 
-/** 기초 초기화 **/
+/** 기초 로직 **/
 function resetForm(){ editTgt={type:null, id:null}; ['ntc-title','ntc-body','acc-label','acc-owner','acc-id','acc-pw','acc-cap'].forEach(i=>{if(document.getElementById(i)) document.getElementById(i).value='';}); document.getElementById('btn-ntc-save').innerText="저장"; document.getElementById('btn-acc-save').innerText="저장"; }
-function checkInitialName(){ if(!myName) document.getElementById('name-setup-overlay').style.display='flex'; else { document.getElementById('display-name').textContent = `👤 ${myName} 님`; document.getElementById('in-name').value = myName; document.getElementById('progress-user-input').value = myName; listen(); } }
+function checkInitialName(){ if(!myName) document.getElementById('name-setup-overlay').style.display='flex'; else { document.getElementById('display-name').textContent = `👤 ${myName} 님`; document.getElementById('in-name').value = myName; listen(); } }
 function saveInitialName(){ const v = document.getElementById('initial-name-input').value.trim(); if(!v) return alert("이름을 입력하세요!"); myName = v; localStorage.setItem('my_name', v); location.reload(); }
 function forceReset(){ if(confirm("이용자를 변경하시겠습니까?")){ localStorage.removeItem('my_name'); location.reload(); } }
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 2000); }
