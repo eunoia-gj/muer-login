@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📚 강의 수강 현황 (계정 연동형)</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#22C55E; --amber:#F59E0B; --blue:#3B82F6; --gray:#6B7280;
+  --bg:#F9FAFB; --card:#fff; --border:#E5E7EB; --text:#111827;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); padding-bottom:80px;}
+
+/* 탭바 */
+.tabbar{position:fixed; bottom:0; left:0; right:0; height:60px; background:var(--card); border-top:1px solid var(--border); display:flex; z-index:100;}
+.tab{flex:1; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:13px; color:var(--gray);}
+.tab.active{color:var(--blue); font-weight:700; border-top:2px solid var(--blue);}
+
+.panel{display:none; padding:1rem;}
+.panel.active{display:block;}
+
+/* 헤더 및 레이아웃 */
+.header{background:var(--card); padding:1rem; border-bottom:1px solid var(--border); margin-bottom:10px;}
+.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px;}
+.stat{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center;}
+.stat-num{font-size:20px; font-weight:700;}
+
+.setup-box{background:#E0F2FE; border:1px solid #BAE6FD; border-radius:12px; padding:15px; margin-bottom:15px; display:flex; gap:8px;}
+.banner-box{background:#F0F9FF; border:1px solid #BAE6FD; border-radius:12px; padding:12px 15px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;}
+
+.form-card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:15px;}
+.form-row{display:flex; gap:8px; margin-bottom:8px;}
+input, select, button, textarea{font-family:inherit; font-size:14px; padding:10px; border-radius:10px; border:1px solid var(--border); outline:none;}
+textarea{width:100%; resize:none; margin-bottom:8px;}
+
+/* 관리자 서브 메뉴 */
+.btn-sub-menu { flex: 1; font-size: 11px; padding: 10px 5px; background: #f3f4f6; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+.btn-sub-menu.active { background: var(--blue); color: white; border-color: var(--blue); font-weight: 700; }
+.admin-tool-box { background: #f9fafb; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-top: 10px; }
+
+.btn{width:100%; border:none; font-weight:700; cursor:pointer; padding:12px;}
+.btn-green{background:var(--green); color:white;}
+.btn-amber{background:var(--amber); color:white;}
+.btn-gray{background:var(--gray); color:white; opacity:0.5;}
+
+.user-card{background:white; border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:8px; display:flex; align-items:center; gap:10px;}
+.notice-card{background:white; border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:8px;}
+
+/* 계정 정보 소형 카드 (강의 목록 내부용) */
+.acc-mini-card { background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 10px; margin-top: 8px; font-size: 12px; }
+.acc-mini-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+
+.toast{position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:10px 20px; border-radius:20px; font-size:13px; opacity:0; transition:0.3s; z-index:1000;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex; justify-content:space-between;"><b>📚 강의 수강 현황</b> <span id="conn-status" style="font-size:12px; color:var(--amber);">연결 중...</span></div>
+</div>
+
+<div class="panel active" id="panel-status">
+  <div id="setup-area" class="setup-box">
+    <input type="text" id="my-name-input" placeholder="이름을 입력하세요" style="flex:1;" maxlength="8">
+    <button onclick="setMyName()" style="background:var(--blue); color:white; border:none; padding:0 15px;">설정</button>
+  </div>
+  
+  <div id="banner-area" class="banner-box" style="display:none;">
+    <span id="display-name" style="font-weight:700;"></span>
+    <button onclick="editName()" style="font-size:11px; background:white;">수정</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="cnt-active" style="color:var(--green);">0</div><div style="font-size:11px;">수강 중</div></div>
+    <div class="stat"><div class="stat-num" id="cnt-waiting" style="color:var(--amber);">0</div><div style="font-size:11px;">대기 중</div></div>
+    <div class="stat"><div class="stat-num" id="cnt-total">0</div><div style="font-size:11px;">오늘 총</div></div>
+  </div>
+
+  <div class="form-card">
+    <div class="form-row">
+      <input type="text" id="in-name" placeholder="이름 미설정" readonly style="width:100px;">
+      <select id="in-lecture" style="flex:1;" onchange="updateButton()"></select>
+    </div>
+    <button id="btn-submit" class="btn btn-gray" disabled onclick="handleReg()">강의를 선택하세요</button>
+  </div>
+
+  <div style="margin-top:20px; font-size:12px; font-weight:700; color:var(--gray);">현재 접속자</div>
+  <div id="user-list" style="margin-top:10px;"></div>
+</div>
+
+<div class="panel" id="panel-notice">
+  <div style="font-size:14px; font-weight:700; margin-bottom:10px;">📋 공지사항</div>
+  <div id="notice-list"></div>
+  
+  <div style="font-size:14px; font-weight:700; margin-top:20px; margin-bottom:10px;">🔑 로그인 정보 (사이트별)</div>
+  <div id="account-list"></div>
+
+  <div style="margin-top:30px; border-top:1px solid #eee; padding-top:10px;">
+    <details>
+      <summary style="font-size:12px; color:var(--gray); cursor:pointer;">⚙️ 관리자 메뉴</summary>
+      <div style="margin-top:10px;">
+        <div id="admin-auth-area">
+          <input type="password" id="admin-pw" placeholder="관리자 비번" style="width:120px;">
+          <button onclick="unlockAdmin()">확인</button>
+        </div>
+        
+        <div id="admin-tools" style="display:none;">
+          <div style="display:flex; gap:5px; margin-bottom:10px;">
+            <button onclick="showSubAdmin('ntc', this)" class="btn-sub-menu">📢 공지작성</button>
+            <button onclick="showSubAdmin('lec', this)" class="btn-sub-menu">🎓 강의관리</button>
+            <button onclick="showSubAdmin('acc', this)" class="btn-sub-menu">🔑 계정관리</button>
+          </div>
+
+          <div id="sub-ntc" class="admin-tool-box" style="display:none;">
+            <input type="text" id="ntc-title" placeholder="공지 제목" style="width:100%; margin-bottom:5px;">
+            <textarea id="ntc-body" rows="3" placeholder="공지 내용"></textarea>
+            <button onclick="addNotice()" style="width:100%; background:var(--blue); color:white; border:none;">공지 게시</button>
+          </div>
+
+          <div id="sub-lec" class="admin-tool-box" style="display:none;">
+            <div class="form-row">
+              <input type="text" id="lec-name" placeholder="강의명" style="flex:2;">
+              <input type="number" id="lec-cap" placeholder="정원" style="flex:1;" value="1">
+            </div>
+            <select id="lec-acc-select" style="width:100%; margin-bottom:8px;">
+              <option value="">연결할 계정 선택 (없음)</option>
+            </select>
+            <textarea id="lec-memo" rows="2" placeholder="기타 메모 (예: 매주 월요일 업데이트)"></textarea>
+            <button onclick="addLecture()" style="width:100%; background:var(--green); color:white; border:none;">강의 추가</button>
+            <div id="lec-manage" style="font-size:12px; color:var(--gray); margin-top:10px;"></div>
+          </div>
+
+          <div id="sub-acc" class="admin-tool-box" style="display:none;">
+            <input type="text" id="acc-label" placeholder="사이트명 (예: 인프런)" style="width:100%; margin-bottom:5px;">
+            <div class="form-row">
+              <input type="text" id="acc-id" placeholder="ID" style="flex:1;">
+              <input type="text" id="acc-pw" placeholder="PW" style="flex:1;">
+            </div>
+            <input type="text" id="acc-note" placeholder="계정 관련 메모" style="width:100%; margin-bottom:8px;">
+            <button onclick="addAccount()" style="width:100%; background:var(--gray); color:white; border:none;">계정 추가</button>
+          </div>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div class="panel" id="panel-lectures">
+  <div class="header"><span class="app-title">🎓 강의 목록 및 계정</span></div>
+  <div class="section"><div id="lecture-display-list"></div></div>
+</div>
+
+<div class="tabbar">
+  <div class="tab active" onclick="goTab('status', this)">📊 수강현황</div>
+  <div class="tab" onclick="goTab('lectures', this)">🎓 강의목록</div>
+  <div class="tab" onclick="goTab('notice', this)">📋 공지&계정</div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+let db=null, usersRef=null, lectureRef=null, noticeRef=null, accountRef=null, adminRef=null;
+let lectures=[], users={}, notices={}, accounts={}, myName=localStorage.getItem('my_name')||'';
+
+function goTab(id, el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+function showSubAdmin(id, btn){
+  document.querySelectorAll('.admin-tool-box').forEach(box => box.style.display = 'none');
+  document.querySelectorAll('.btn-sub-menu').forEach(b => b.classList.remove('active'));
+  document.getElementById('sub-' + id).style.display = 'block';
+  btn.classList.add('active');
+}
+
+const fbUrl = localStorage.getItem('fb_url'), fbKey = localStorage.getItem('fb_key'), fbPrj = localStorage.getItem('fb_project');
+if(fbUrl) {
+  const app = firebase.initializeApp({apiKey:fbKey, databaseURL:fbUrl, projectId:fbPrj});
+  db = firebase.database(app);
+  usersRef = db.ref('lecture_users'); lectureRef = db.ref('lectures'); 
+  noticeRef = db.ref('notices'); accountRef = db.ref('accounts'); adminRef = db.ref('admin_pw');
+  listen();
+}
+
+function listen(){
+  lectureRef.on('value', s=>{
+    lectures = Object.values(s.val()||[]);
+    const sel = document.getElementById('in-lecture');
+    sel.innerHTML = '<option value="">강의 선택</option>' + lectures.map(l=>`<option value="${l.name}">${l.name}</option>`).join('');
+    renderLecManage(); renderLectureDisplay();
+    document.getElementById('conn-status').textContent = "🟢 실시간 연결됨";
+  });
+  usersRef.on('value', s=>{ users = s.val()||{}; renderUsers(); updateButton(); });
+  noticeRef.on('value', s=>{ notices = s.val()||{}; renderNotices(); });
+  accountRef.on('value', s=>{ 
+    accounts = s.val()||{}; renderAccounts(); 
+    // 강의 추가 시 계정 선택창 업데이트
+    const accSel = document.getElementById('lec-acc-select');
+    accSel.innerHTML = '<option value="">연결할 계정 선택 (없음)</option>' + Object.entries(accounts).map(([id, a])=>`<option value="${id}">${a.label}</option>`).join('');
+  });
+}
+
+// 강의 목록 탭 렌더링 (계정 정보 포함)
+function renderLectureDisplay(){
+  const el = document.getElementById('lecture-display-list');
+  if(!lectures.length){ el.innerHTML='<div class="empty">강의가 없습니다.</div>'; return; }
+  el.innerHTML = lectures.map(l=>{
+    let accHtml = '';
+    if(l.accId && accounts[l.accId]){
+      const a = accounts[l.accId];
+      accHtml = `
+        <div class="acc-mini-card">
+          <div style="font-weight:700; margin-bottom:5px; color:var(--blue);">🔑 연결 계정: ${a.label}</div>
+          <div class="acc-mini-row"><span>ID:</span> <b>${a.id}</b></div>
+          <div class="acc-mini-row"><span>PW:</span> <b>${a.pw}</b></div>
+          ${a.note ? `<div style="font-size:11px; color:var(--gray); margin-top:5px;">📝 ${a.note}</div>` : ''}
+        </div>`;
+    }
+    return `
+      <div class="notice-card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <b style="font-size:15px;">${l.name}</b>
+          <span style="font-size:11px; color:var(--gray);">정원: ${l.cap}명</span>
+        </div>
+        ${l.memo ? `<div style="font-size:13px; color:var(--gray); margin-top:4px;">${l.memo}</div>` : ''}
+        ${accHtml}
+        <button class="btn btn-blue" style="padding:8px; margin-top:10px; font-size:12px;" onclick="quickReg('${l.name}')">이 강의 수강하기</button>
+      </div>`;
+  }).join('');
+}
+
+function quickReg(n){ document.getElementById('in-lecture').value=n; goTab('status', document.querySelectorAll('.tab')[0]); updateButton(); }
+
+function addLecture(){
+  const n=document.getElementById('lec-name').value, c=document.getElementById('lec-cap').value;
+  const m=document.getElementById('lec-memo').value, a=document.getElementById('lec-acc-select').value;
+  if(!n) return;
+  lectures.push({name:n, cap:c, memo:m, accId:a});
+  lectureRef.set(lectures);
+  document.getElementById('lec-name').value=''; document.getElementById('lec-memo').value='';
+  toast("강의가 추가되었습니다.");
+}
+
+function addAccount(){
+  const label=document.getElementById('acc-label').value, id=document.getElementById('acc-id').value, pw=document.getElementById('acc-pw').value, note=document.getElementById('acc-note').value;
+  if(!label||!id||!pw) return;
+  accountRef.push({label, id, pw, note, ts:Date.now()});
+  ['acc-label','acc-id','acc-pw','acc-note'].forEach(i=>document.getElementById(i).value='');
+  toast("계정 정보가 저장되었습니다.");
+}
+
+// 나머지 로직 (인증, 이름 설정 등) 동일...
+function unlockAdmin(){
+  adminRef.once('value', s=>{
+    if(document.getElementById('admin-pw').value === (s.val()||'admin1234')) {
+      document.getElementById('admin-tools').style.display='block';
+      document.getElementById('admin-auth-area').style.display='none';
+    } else alert("비번 오류");
+  });
+}
+function setMyName(){
+  const v = document.getElementById('my-name-input').value.trim();
+  if(!v) return;
+  myName = v; localStorage.setItem('my_name', v); updateNameUI();
+}
+function editName(){ localStorage.removeItem('my_name'); myName=''; updateNameUI(); }
+function updateNameUI(){
+  document.getElementById('setup-area').style.display = myName?'none':'flex';
+  document.getElementById('banner-area').style.display = myName?'flex':'none';
+  document.getElementById('display-name').textContent = "👤 " + myName + " 님";
+  document.getElementById('in-name').value = myName;
+  updateButton();
+}
+function updateButton(){
+  const btn = document.getElementById('btn-submit'), lec = document.getElementById('in-lecture').value;
+  if(!myName || !lec) { btn.disabled=true; btn.className="btn btn-gray"; return; }
+  const target = lectures.find(l=>l.name===lec);
+  const cap = target ? parseInt(target.cap) : 1;
+  const count = Object.values(users).filter(u=>u.lecture===lec && u.status==='active').length;
+  btn.disabled = false;
+  if(count < cap) { btn.textContent="🟢 수강 신청하기"; btn.className="btn btn-green"; btn.onclick=()=>reg('active'); }
+  else { btn.textContent="🟡 대기 등록하기"; btn.className="btn btn-amber"; btn.onclick=()=>reg('waiting'); }
+}
+function reg(s){
+  if(Object.values(users).some(u=>u.name===myName)){ alert("이미 등록되어 있습니다."); return; }
+  usersRef.push({name:myName, lecture:document.getElementById('in-lecture').value, status:s, ts:Date.now()});
+  toast("등록 완료!");
+}
+function renderUsers(){
+  const list = document.getElementById('user-list'), arr = Object.entries(users);
+  document.getElementById('cnt-active').textContent = arr.filter(u=>u[1].status==='active').length;
+  document.getElementById('cnt-waiting').textContent = arr.filter(u=>u[1].status==='waiting').length;
+  document.getElementById('cnt-total').textContent = arr.length;
+  list.innerHTML = arr.map(([id, u])=>`
+    <div class="user-card">
+      <div style="flex:1;"><b>${u.name}</b><br><small>${u.lecture} (${u.status==='active'?'수강':'대기'})</small></div>
+      <button onclick="usersRef.child('${id}').remove()">종료</button>
+    </div>`).join('');
+}
+function renderLecManage(){
+  document.getElementById('lec-manage').innerHTML = lectures.map((l,i)=>`<div>${l.name}(${l.cap}) <span onclick="delLec(${i})" style="color:red; cursor:pointer;">[X]</span></div>`).join('');
+}
+function delLec(i){ if(confirm("삭제하시겠습니까?")){lectures.splice(i,1); lectureRef.set(lectures);}}
+function addNotice(){
+  const t = document.getElementById('ntc-title').value.trim(), b = document.getElementById('ntc-body').value.trim();
+  if(!t) return;
+  noticeRef.push({title:t, body:b, ts:Date.now()});
+  document.getElementById('ntc-title').value=''; document.getElementById('ntc-body').value='';
+  toast("공지가 게시되었습니다.");
+}
+function renderNotices(){
+  const list = document.getElementById('notice-list'), arr = Object.entries(notices).sort((a,b)=>b[1].ts-a[1].ts);
+  if(!arr.length){ list.innerHTML='<div style="font-size:12px; color:#aaa;">공지사항이 없습니다.</div>'; return; }
+  list.innerHTML = arr.map(([id, n])=>`<div class="notice-card"><b>${n.title}</b><div style="font-size:13px; color:#555; margin-top:5px; white-space:pre-wrap;">${n.body}</div></div>`).join('');
+}
+function renderAccounts(){
+  const list = document.getElementById('account-list');
+  list.innerHTML = Object.entries(accounts).map(([id, a])=>`<div class="notice-card" style="background:#f9f9f9;"><b>${a.label}</b><br><small>ID: ${a.id} / PW: ${a.pw}</small></div>`).join('') || '<div style="font-size:12px; color:#aaa;">등록된 계정이 없습니다.</div>';
+}
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
+updateNameUI();
+</script>
+</body>
+</html>
