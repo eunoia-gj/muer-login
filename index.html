@@ -3,47 +3,70 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📚 강의 수강 현황 (시스템 통합 완결판)</title>
+<title>📚 강의 현황판 (긴급 복구 완료)</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --green:#22C55E; --amber:#F59E0B; --blue:#3B82F6; --gray:#6B7280;
-  --bg:#F9FAFB; --card:#fff; --border:#E5E7EB; --text:#111827;
-}
+:root{ --blue:#3B82F6; --gray:#6B7280; --bg:#F3F4F6; }
 *{box-sizing:border-box; margin:0; padding:0;}
-body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); padding-bottom:80px;}
+body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:#111; min-height:100vh;}
 
-/* 탭바 */
-.tabbar{position:fixed; bottom:0; left:0; right:0; height:60px; background:var(--card); border-top:1px solid var(--border); display:flex; z-index:100;}
-.tab{flex:1; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; color:var(--gray); flex-direction:column; gap:2px;}
-.tab.active{color:var(--blue); font-weight:700; border-top:2px solid var(--blue);}
+/* 설정창 (기본으로 보이게 설정) */
+#setup-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.8); 
+  display:flex; align-items:center; justify-content:center; z-index:9999;
+}
+.setup-panel {
+  background:white; padding:30px; border-radius:20px; width:90%; max-width:400px;
+}
+input { width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:10px; outline:none; }
+.btn { width:100%; padding:12px; border:none; border-radius:10px; font-weight:700; cursor:pointer; background:var(--blue); color:white; }
 
-.panel{display:none; padding:1rem;}
-.panel.active{display:block;}
+/* 메인 화면 레이아웃 */
+.header { background:white; padding:20px; border-bottom:1px solid #ddd; text-align:center; font-weight:700; }
+.content { padding:20px; text-align:center; }
+.tabbar { position:fixed; bottom:0; left:0; right:0; height:60px; background:white; border-top:1px solid #ddd; display:flex; }
+.tab { flex:1; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--gray); cursor:pointer; }
+.tab.active { color:var(--blue); font-weight:700; }
+</style>
+</head>
+<body>
 
-.header{background:var(--card); padding:1rem; border-bottom:1px solid var(--border); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;}
-.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px;}
-.stat{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center;}
-.stat-num{font-size:20px; font-weight:700;}
+<div id="setup-overlay">
+  <div class="setup-panel">
+    <h2 style="margin-bottom:15px; font-size:18px;">🔧 Firebase 연결 설정</h2>
+    <p style="font-size:12px; color:gray; margin-bottom:15px;">이 정보가 입력되어야 화면이 나타납니다.</p>
+    <input type="text" id="cfg-url" placeholder="Firebase Database URL (https://...)">
+    <input type="text" id="cfg-key" placeholder="API Key">
+    <input type="text" id="cfg-project" placeholder="Project ID">
+    <button onclick="saveConfig()" class="btn">설정 저장 및 사이트 시작</button>
+    <p style="font-size:10px; color:#aaa; margin-top:15px; text-align:center;">설정 후에도 안 보이면 새로고침을 해주세요.</p>
+  </div>
+</div>
 
-/* 설정 오버레이 */
-.setup-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; align-items:center; justify-content:center; z-index:1000; padding:20px;}
-.setup-panel{background:white; border-radius:20px; padding:25px; width:100%; max-width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.2);}
+<div class="header">
+  📚 강의 수강 현황판
+  <span id="conn-dot" style="display:inline-block; width:8px; height:8px; background:orange; border-radius:50%; margin-left:5px;"></span>
+</div>
 
-/* 공통 카드 및 버튼 */
-.notice-card{background:white; border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:10px;}
-.btn{width:100%; border:none; font-weight:700; cursor:pointer; padding:12px; border-radius:10px;}
-.btn-green{background:var(--green); color:white;}
-.btn-blue{background:var(--blue); color:white;}
-.btn-gray{background:var(--gray); color:white;}
+<div class="content" id="main-content">
+  <p style="margin-top:50px; color:#666;">데이터를 불러오는 중입니다...</p>
+</div>
 
-.form-row{display:flex; gap:8px; margin-bottom:8px;}
-input, select, textarea{width:100%; font-family:inherit; font-size:14px; padding:10px; border-radius:10px; border:1px solid var(--border); outline:none; margin-bottom:8px;}
+<div class="tabbar">
+  <div class="tab active">📊 현황</div>
+  <div class="tab">🎓 강의</div>
+  <div class="tab">🔑 계정</div>
+  <div class="tab" onclick="forceReset()" style="color:red;">⚙️ 초기화</div>
+</div>
 
-/* 관리자 서브 메뉴 */
-.btn-sub-menu { flex: 1; font-size: 11px; padding: 10px 5px; background: #f3f4f6; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; border: none; }
-.btn-sub-menu.active { background: var(--blue); color: white; font-weight: 700; }
-.admin-item{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #eee; font-size:13px;}
-.toast{position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:10px 20px;
+<script>
+// 1. 저장된 정보 가져오기
+const u = localStorage.getItem('fb_url'), k = localStorage.getItem('fb_key'), p = localStorage.getItem('fb_project');
+
+// 2. 정보가 있으면 설정창 숨기고 연결 시도
+if(u && k && p) {
+  document.getElementById('setup-overlay').style.display = 'none';
+  try {
+    const app = firebase.initializeApp({apiKey:k,
