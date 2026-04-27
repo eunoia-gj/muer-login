@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📚 강의 수강 현황 (상세공지판)</title>
+<title>📚 강의 수강 현황 (계정 마스터판)</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@ body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--te
 
 /* 탭바 */
 .tabbar{position:fixed; bottom:0; left:0; right:0; height:60px; background:var(--card); border-top:1px solid var(--border); display:flex; z-index:100;}
-.tab{flex:1; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:13px; color:var(--gray);}
+.tab{flex:1; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; color:var(--gray); text-align:center; flex-direction:column; gap:2px;}
 .tab.active{color:var(--blue); font-weight:700; border-top:2px solid var(--blue);}
 
 .panel{display:none; padding:1rem;}
@@ -29,7 +29,7 @@ body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--te
 .stat{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px; text-align:center;}
 .stat-num{font-size:20px; font-weight:700;}
 
-/* 오버레이 공통 (설정 및 상세보기) */
+/* 오버레이 */
 .setup-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:flex-end; z-index:200;}
 .setup-panel{background:white; border-radius:20px 20px 0 0; padding:2rem 1.25rem; width:100%; max-height:85vh; overflow-y:auto;}
 
@@ -53,11 +53,7 @@ textarea{width:100%; resize:none; margin-bottom:8px;}
 .btn-gray{background:var(--gray); color:white; opacity:0.5;}
 
 .user-card{background:white; border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:8px; display:flex; align-items:center; gap:10px;}
-.notice-card{background:white; border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:8px; transition: 0.2s;}
-.notice-card:active{background:#f3f4f6;}
-
-.acc-mini-card { background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 10px; margin-top: 8px; font-size: 12px; }
-.acc-mini-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.notice-card{background:white; border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:8px;}
 
 .toast{position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:10px 20px; border-radius:20px; font-size:13px; opacity:0; transition:0.3s; z-index:1000;}
 .toast.show{opacity:1;}
@@ -76,12 +72,9 @@ textarea{width:100%; resize:none; margin-bottom:8px;}
 </div>
 
 <div class="setup-overlay" id="notice-overlay" style="align-items: center;">
-  <div class="setup-panel" style="border-radius: 20px; width: 90%; max-height: 80vh;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h2 id="detail-title" style="font-size:18px;">공지 제목</h2>
-        <button onclick="closeNotice()" style="background: none; border: none; font-size: 20px; cursor: pointer;">✕</button>
-    </div>
-    <div id="detail-body" style="font-size:14px; line-height:1.6; color:#444; white-space:pre-wrap; margin-bottom: 25px;">공지 내용이 들어갑니다.</div>
+  <div class="setup-panel" style="border-radius: 20px; width: 90%;">
+    <h2 id="detail-title" style="font-size:18px; margin-bottom:10px;"></h2>
+    <div id="detail-body" style="font-size:14px; line-height:1.6; white-space:pre-wrap; margin-bottom:20px;"></div>
     <button onclick="closeNotice()" class="btn btn-gray" style="opacity:1;">닫기</button>
   </div>
 </div>
@@ -95,37 +88,35 @@ textarea{width:100%; resize:none; margin-bottom:8px;}
     <input type="text" id="my-name-input" placeholder="이름을 입력하세요" style="flex:1;" maxlength="8">
     <button onclick="setMyName()" style="background:var(--blue); color:white; border:none; padding:0 15px;">설정</button>
   </div>
-  
   <div id="banner-area" class="banner-box" style="display:none;">
     <span id="display-name" style="font-weight:700;"></span>
     <button onclick="editName()" style="font-size:11px; background:white;">수정</button>
   </div>
-
   <div class="stats">
     <div class="stat"><div class="stat-num" id="cnt-active" style="color:var(--green);">0</div><div style="font-size:11px;">수강 중</div></div>
     <div class="stat"><div class="stat-num" id="cnt-waiting" style="color:var(--amber);">0</div><div style="font-size:11px;">대기 중</div></div>
     <div class="stat"><div class="stat-num" id="cnt-total">0</div><div style="font-size:11px;">오늘 총</div></div>
   </div>
-
   <div class="form-card">
-    <div class="form-row">
-      <input type="text" id="in-name" placeholder="이름 미설정" readonly style="width:100px;">
-      <select id="in-lecture" style="flex:1;" onchange="updateButton()"></select>
-    </div>
+    <div class="form-row"><input type="text" id="in-name" placeholder="이름 미설정" readonly style="width:100px;"><select id="in-lecture" style="flex:1;"></select></div>
     <button id="btn-submit" class="btn btn-gray" disabled onclick="handleReg()">강의를 선택하세요</button>
   </div>
-
   <div style="margin-top:20px; font-size:12px; font-weight:700; color:var(--gray);">현재 접속자</div>
   <div id="user-list" style="margin-top:10px;"></div>
 </div>
 
 <div class="panel" id="panel-lectures">
-  <div style="font-size:14px; font-weight:700; margin-bottom:10px;">🎓 강의 정보 및 계정</div>
+  <div style="font-size:14px; font-weight:700; margin-bottom:10px;">🎓 전체 강의 목록</div>
   <div id="lecture-display-list"></div>
 </div>
 
+<div class="panel" id="panel-accounts">
+  <div style="font-size:14px; font-weight:700; margin-bottom:10px;">🔑 공유 계정 정보</div>
+  <div id="account-board-list"></div>
+</div>
+
 <div class="panel" id="panel-notice">
-  <div style="font-size:14px; font-weight:700; margin-bottom:10px;">📋 공지사항 (클릭하여 확인)</div>
+  <div style="font-size:14px; font-weight:700; margin-bottom:10px;">📋 공지사항</div>
   <div id="notice-list"></div>
   
   <div style="margin-top:30px; border-top:1px solid #eee; padding-top:10px;">
@@ -133,42 +124,33 @@ textarea{width:100%; resize:none; margin-bottom:8px;}
       <summary style="font-size:12px; color:var(--gray); cursor:pointer;">⚙️ 관리자 메뉴</summary>
       <div style="margin-top:10px;">
         <div id="admin-auth-area">
-          <input type="password" id="admin-pw" placeholder="관리자 비번" style="width:120px;">
-          <button onclick="unlockAdmin()">확인</button>
+          <input type="password" id="admin-pw" placeholder="관리자 비번" style="width:120px;"><button onclick="unlockAdmin()">확인</button>
         </div>
-        
         <div id="admin-tools" style="display:none;">
           <div style="display:flex; gap:5px; margin-bottom:10px;">
             <button onclick="showSubAdmin('ntc', this)" class="btn-sub-menu">📢 공지작성</button>
             <button onclick="showSubAdmin('lec', this)" class="btn-sub-menu">🎓 강의관리</button>
             <button onclick="showSubAdmin('acc', this)" class="btn-sub-menu">🔑 계정관리</button>
           </div>
-
           <div id="sub-ntc" class="admin-tool-box" style="display:none;">
             <input type="text" id="ntc-title" placeholder="공지 제목" style="width:100%; margin-bottom:5px;">
             <textarea id="ntc-body" rows="3" placeholder="공지 내용"></textarea>
             <button onclick="addNotice()" class="btn btn-blue" style="padding:10px;">공지 게시</button>
           </div>
-
           <div id="sub-lec" class="admin-tool-box" style="display:none;">
-            <div class="form-row">
-              <input type="text" id="lec-name" placeholder="강의명" style="flex:2;">
-              <input type="number" id="lec-cap" placeholder="정원" style="flex:1;" value="1">
-            </div>
+            <div class="form-row"><input type="text" id="lec-name" placeholder="강의명" style="flex:2;"><input type="number" id="lec-cap" placeholder="정원" style="flex:1;" value="1"></div>
             <select id="lec-acc-select" style="width:100%; margin-bottom:8px;"></select>
             <textarea id="lec-memo" rows="2" placeholder="기타 메모"></textarea>
             <button onclick="addLecture()" class="btn btn-green" style="padding:10px;">강의 추가</button>
             <div id="lec-manage" style="font-size:12px; color:var(--gray); margin-top:10px;"></div>
           </div>
-
           <div id="sub-acc" class="admin-tool-box" style="display:none;">
             <input type="text" id="acc-label" placeholder="사이트명" style="width:100%; margin-bottom:5px;">
-            <div class="form-row">
-              <input type="text" id="acc-id" placeholder="ID" style="flex:1;">
-              <input type="text" id="acc-pw" placeholder="PW" style="flex:1;">
-            </div>
+            <div class="form-row"><input type="text" id="acc-id" placeholder="ID" style="flex:1;"><input type="text" id="acc-pw" placeholder="PW" style="flex:1;"></div>
+            <input type="text" id="acc-owner" placeholder="계정 주인 (예: 예은)" style="width:100%; margin-bottom:5px;">
             <input type="text" id="acc-note" placeholder="계정 메모" style="width:100%; margin-bottom:8px;">
             <button onclick="addAccount()" class="btn btn-gray" style="padding:10px; opacity:1;">계정 추가</button>
+            <div id="acc-manage" style="font-size:11px; color:var(--gray); margin-top:15px; border-top:1px solid #ddd; padding-top:10px;"></div>
           </div>
         </div>
       </div>
@@ -177,9 +159,10 @@ textarea{width:100%; resize:none; margin-bottom:8px;}
 </div>
 
 <div class="tabbar">
-  <div class="tab active" onclick="goTab('status', this)">📊 수강현황</div>
-  <div class="tab" onclick="goTab('lectures', this)">🎓 강의목록</div>
-  <div class="tab" onclick="goTab('notice', this)">📋 관리자</div>
+  <div class="tab active" onclick="goTab('status', this)">📊<span>수강현황</span></div>
+  <div class="tab" onclick="goTab('lectures', this)">🎓<span>강의목록</span></div>
+  <div class="tab" onclick="goTab('accounts', this)">🔑<span>계정판</span></div>
+  <div class="tab" onclick="goTab('notice', this)">📋<span>관리자</span></div>
 </div>
 <div id="toast" class="toast"></div>
 
@@ -198,113 +181,4 @@ function goTab(id, el){
 function showSubAdmin(id, btn){
   document.querySelectorAll('.admin-tool-box').forEach(box => box.style.display = 'none');
   document.querySelectorAll('.btn-sub-menu').forEach(b => b.classList.remove('active'));
-  document.getElementById('sub-' + id).style.display = 'block';
-  btn.classList.add('active');
-}
-
-// Firebase 초기화
-const fbUrl = localStorage.getItem('fb_url'), fbKey = localStorage.getItem('fb_key'), fbPrj = localStorage.getItem('fb_project');
-if(!fbUrl) {
-  document.getElementById('setup-overlay').style.display = 'flex';
-} else {
-  const app = firebase.initializeApp({apiKey:fbKey, databaseURL:fbUrl, projectId:fbPrj});
-  db = firebase.database(app);
-  usersRef = db.ref('lecture_users'); lectureRef = db.ref('lectures'); 
-  noticeRef = db.ref('notices'); accountRef = db.ref('accounts'); adminRef = db.ref('admin_pw');
-  listen();
-}
-
-function saveConfig(){
-  localStorage.setItem('fb_url', document.getElementById('cfg-url').value.trim());
-  localStorage.setItem('fb_key', document.getElementById('cfg-key').value.trim());
-  localStorage.setItem('fb_project', document.getElementById('cfg-project').value.trim());
-  location.reload();
-}
-
-function listen(){
-  lectureRef.on('value', s=>{
-    lectures = Object.values(s.val()||[]);
-    const sel = document.getElementById('in-lecture');
-    sel.innerHTML = '<option value="">강의 선택</option>' + lectures.map(l=>`<option value="${l.name}">${l.name}</option>`).join('');
-    renderLecManage(); renderLectureDisplay();
-    document.getElementById('conn-status').textContent = "🟢 실시간 연결됨";
-  });
-  usersRef.on('value', s=>{ users = s.val()||{}; renderUsers(); updateButton(); });
-  noticeRef.on('value', s=>{ notices = s.val()||{}; renderNotices(); });
-  accountRef.on('value', s=>{ 
-    accounts = s.val()||{};
-    const accSel = document.getElementById('lec-acc-select');
-    accSel.innerHTML = '<option value="">연결할 계정 선택</option>' + Object.entries(accounts).map(([id, a])=>`<option value="${id}">${a.label}</option>`).join('');
-    renderLectureDisplay();
-  });
-}
-
-// ── 공지사항 상세보기 로직 (수정됨) ──
-function renderNotices(){
-  const list = document.getElementById('notice-list'), arr = Object.entries(notices).sort((a,b)=>b[1].ts-a[1].ts);
-  if(!arr.length){ list.innerHTML='<div style="font-size:12px; color:#aaa;">공지사항이 없습니다.</div>'; return; }
-  
-  list.innerHTML = arr.map(([id, n])=>`
-    <div class="notice-card" onclick="openNotice('${id}')" style="cursor:pointer; padding: 15px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <b style="font-size:15px; color:var(--blue);">${n.title}</b>
-        <span style="font-size:11px; color:var(--gray);">더보기 ></span>
-      </div>
-      <div style="font-size:13px; color:#666; margin-top:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-        ${n.body}
-      </div>
-    </div>`).join('');
-}
-
-function openNotice(id){
-  const n = notices[id];
-  document.getElementById('detail-title').textContent = n.title;
-  document.getElementById('detail-body').textContent = n.body;
-  document.getElementById('notice-overlay').style.display = 'flex';
-}
-
-function closeNotice(){
-  document.getElementById('notice-overlay').style.display = 'none';
-}
-
-// ── 나머지 데이터 렌더링 ──
-function renderLectureDisplay(){
-  const el = document.getElementById('lecture-display-list');
-  el.innerHTML = lectures.map(l=>{
-    let accHtml = '';
-    if(l.accId && accounts[l.accId]){
-      const a = accounts[l.accId];
-      accHtml = `<div class="acc-mini-card"><b>🔑 ${a.label}</b>: ID ${a.id} / PW ${a.pw}</div>`;
-    }
-    return `<div class="notice-card" style="padding:12px;"><b>${l.name}</b> (정원 ${l.cap})<br><small style="color:var(--gray);">${l.memo||''}</small>${accHtml}</div>`;
-  }).join('');
-}
-
-function renderUsers(){
-  const list = document.getElementById('user-list'), arr = Object.entries(users).sort((a,b)=>a[1].ts-b[1].ts);
-  document.getElementById('cnt-active').textContent = arr.filter(u=>u[1].status==='active').length;
-  document.getElementById('cnt-waiting').textContent = arr.filter(u=>u[1].status==='waiting').length;
-  document.getElementById('cnt-total').textContent = arr.length;
-  list.innerHTML = arr.map(([id, u])=>`
-    <div class="user-card ${myName===u.name?'mine':''}">
-      <div style="flex:1;"><b>${u.name}</b><br><small>${u.lecture} (${u.status==='active'?'수강':'대기'})</small></div>
-      <button onclick="usersRef.child('${id}').remove()">종료</button>
-    </div>`).join('');
-}
-
-// ── 관리자 기능 및 유틸 ──
-function unlockAdmin(){ adminRef.once('value', s=>{ if(document.getElementById('admin-pw').value === (s.val()||'admin1234')) { document.getElementById('admin-tools').style.display='block'; document.getElementById('admin-auth-area').style.display='none'; } }); }
-function addLecture(){ const n=document.getElementById('lec-name').value, c=document.getElementById('lec-cap').value, m=document.getElementById('lec-memo').value, a=document.getElementById('lec-acc-select').value; if(n){lectures.push({name:n, cap:c, memo:m, accId:a}); lectureRef.set(lectures); toast("추가됨");}}
-function addAccount(){ accountRef.push({label:document.getElementById('acc-label').value, id:document.getElementById('acc-id').value, pw:document.getElementById('acc-pw').value, note:document.getElementById('acc-note').value}); toast("저장됨"); }
-function addNotice(){ noticeRef.push({title:document.getElementById('ntc-title').value, body:document.getElementById('ntc-body').value, ts:Date.now()}); toast("게시됨"); }
-function setMyName(){ const v=document.getElementById('my-name-input').value.trim(); if(v){myName=v; localStorage.setItem('my_name',v); updateNameUI();}}
-function updateNameUI(){ const setup=document.getElementById('setup-area'), banner=document.getElementById('banner-area'); if(myName){ setup.style.display='none'; banner.style.display='flex'; document.getElementById('display-name').textContent="👤 "+myName+" 님"; document.getElementById('in-name').value=myName; } updateButton(); }
-function editName(){ localStorage.removeItem('my_name'); myName=''; updateNameUI(); }
-function updateButton(){ const btn=document.getElementById('btn-submit'), lec=document.getElementById('in-lecture').value; if(!myName||!lec){ btn.disabled=true; return; } const target=lectures.find(l=>l.name===lec); const count=Object.values(users).filter(u=>u.lecture===lec && u.status==='active').length; btn.disabled=false; if(count < (target?target.cap:1)){ btn.textContent="🟢 수강 신청"; btn.className="btn btn-green"; currentRegStatus='active'; } else { btn.textContent="🟡 대기 등록"; btn.className="btn btn-amber"; currentRegStatus='waiting'; }}
-function handleReg(){ if(Object.values(users).some(u=>u.name===myName)){ alert("이미 등록되어 있습니다."); return; } usersRef.push({name:myName, lecture:document.getElementById('in-lecture').value, status:currentRegStatus, ts:Date.now()}); toast("등록 완료!"); }
-function renderLecManage(){ document.getElementById('lec-manage').innerHTML=lectures.map((l,i)=>`<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${l.name}</span> <button onclick="if(confirm('삭제?')){lectures.splice(${i},1);lectureRef.set(lectures);}" style="color:red; border:none; background:none;">X</button></div>`).join(''); }
-function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
-updateNameUI();
-</script>
-</body>
-</html>
+  document.getElementById
