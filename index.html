@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📚 Muer 수강 관리</title>
+<title>Muer 스마트 수강 및 진도 관리</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -12,7 +12,6 @@
 *{box-sizing:border-box; margin:0; padding:0;}
 body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:#111; padding-bottom:80px;}
 
-/* 헤더 및 탭 */
 .header{background:#fff; padding:1rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100;}
 .tabbar{position:fixed; bottom:0; left:0; right:0; height:60px; background:#fff; border-top:1px solid var(--border); display:flex; z-index:100;}
 .tab{flex:1; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; color:var(--gray); flex-direction:column;}
@@ -20,7 +19,6 @@ body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:#111; pa
 .panel{display:none; padding:1rem;}
 .panel.active{display:block;}
 
-/* 오버레이 및 팝업 */
 .overlay{position:fixed; inset:0; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; z-index:1000; padding:20px;}
 .popup{background:#fff; border-radius:20px; padding:25px; width:100%; max-width:420px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.3);}
 .close-btn{position:absolute; top:15px; right:15px; background:none; border:none; font-size:24px; cursor:pointer; color:var(--gray);}
@@ -32,7 +30,7 @@ body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:#111; pa
 .btn-gray{background:var(--gray); color:#fff;}
 
 input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); margin-bottom:8px; outline:none; font-family:inherit; font-size:14px;}
-.admin-item-row{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee; font-size:13px;}
+.admin-item-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #eee; font-size:13px;}
 </style>
 </head>
 <body>
@@ -50,7 +48,8 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
     <button class="close-btn" onclick="closeAdmin()">✕</button>
     <h2 style="font-size:18px; margin-bottom:15px;">⚙️ 관리자 도구</h2>
     <div id="admin-auth">
-      <input type="password" id="admin-pw" placeholder="Firebase admin_pw 입력">
+      <p style="font-size:12px; color:gray; margin-bottom:10px;">Firebase의 admin_pw를 입력하세요.</p>
+      <input type="password" id="admin-pw" placeholder="비밀번호">
       <button onclick="unlockAdmin()" class="btn btn-blue">인증</button>
     </div>
     <div id="admin-tools" style="display:none;">
@@ -60,23 +59,20 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
             <button onclick="showSub('acc',this)" class="btn-sub" style="flex:1; font-size:11px; padding:10px; border:none; border-radius:8px; cursor:pointer;">계정</button>
         </div>
         <div id="sub-ntc" class="tool-box">
-            <input type="text" id="ntc-title" placeholder="공지 제목">
-            <textarea id="ntc-body" rows="3" placeholder="내용"></textarea>
+            <input type="text" id="ntc-title" placeholder="제목"><textarea id="ntc-body" rows="3" placeholder="내용"></textarea>
             <button id="btn-ntc-save" onclick="addNotice()" class="btn btn-blue">저장</button>
-            <div id="ntc-mng-list" style="margin-top:15px; max-height:200px; overflow-y:auto;"></div>
+            <div id="ntc-mng-list" style="margin-top:15px;"></div>
         </div>
         <div id="sub-lec" class="tool-box" style="display:none;">
-            <input type="text" id="lec-name" placeholder="강의명">
-            <input type="number" id="lec-cap" placeholder="정원" value="1">
+            <input type="text" id="lec-name" placeholder="강의명"><input type="number" id="lec-cap" placeholder="정원">
             <select id="lec-acc-select"></select>
             <button id="btn-lec-save" onclick="addLecture()" class="btn btn-green">저장</button>
-            <div id="lec-mng-list" style="margin-top:15px; max-height:200px; overflow-y:auto;"></div>
+            <div id="lec-mng-list" style="margin-top:15px;"></div>
         </div>
         <div id="sub-acc" class="tool-box" style="display:none;">
-            <input type="text" id="acc-label" placeholder="사이트명">
-            <input type="text" id="acc-id" placeholder="ID"><input type="text" id="acc-pw" placeholder="PW">
+            <input type="text" id="acc-label" placeholder="사이트명"><div style="display:flex; gap:5px;"><input type="text" id="acc-id" placeholder="ID"><input type="text" id="acc-pw" placeholder="PW"></div>
             <button id="btn-acc-save" onclick="addAccount()" class="btn btn-gray" style="opacity:1;">저장</button>
-            <div id="acc-mng-list" style="margin-top:15px; max-height:200px; overflow-y:auto;"></div>
+            <div id="acc-mng-list" style="margin-top:15px;"></div>
         </div>
     </div>
   </div>
@@ -103,6 +99,10 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
         <span id="display-name" style="font-weight:700;"></span>
         <button onclick="changeName()" style="font-size:10px; padding:4px 8px; border:1px solid #ddd; border-radius:5px;">변경</button>
     </div>
+    <div class="card">
+        <div style="display:flex; gap:8px;"><input type="text" id="in-name" readonly style="width:100px; margin-bottom:0;"><select id="in-lecture" style="margin-bottom:0;" onchange="updateBtn()"></select></div>
+        <button id="btn-submit" class="btn btn-gray" disabled onclick="handleReg()" style="margin-top:10px;">강의 선택</button>
+    </div>
     <div id="user-list"></div>
 </div>
 
@@ -110,10 +110,12 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
     <div class="card">
         <input type="text" id="progress-user-input" list="user-suggestions" placeholder="이름 입력" oninput="loadUserProgress()">
         <datalist id="user-suggestions"></datalist>
-        <div id="progress-display" style="background:#f8fafc; padding:15px; border-radius:10px; min-height:100px; font-size:14px; white-space:pre-wrap; margin-top:10px; border:1px dashed #ddd;">진도를 선택하세요.</div>
+        <div id="progress-display" style="background:#f8fafc; padding:15px; border-radius:10px; min-height:100px; font-size:14px; white-space:pre-wrap; margin-top:10px; border:1px dashed #ddd;">진도를 조회하세요.</div>
     </div>
     <div id="my-progress-section" class="card" style="display:none; border-top:2px solid var(--blue);">
-        <textarea id="my-progress-input" rows="4" placeholder="내용 기록"></textarea>
+        <p style="font-weight:700; font-size:13px; margin-bottom:10px;">📖 내 진도 기록</p>
+        <select id="progress-lecture-select" style="margin-bottom:8px;"></select>
+        <textarea id="my-progress-input" rows="4" placeholder="오늘 공부한 내용"></textarea>
         <button onclick="saveMyProgress()" class="btn btn-blue">저장</button>
     </div>
 </div>
@@ -125,10 +127,9 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
 <div class="panel" id="panel-notice-acc">
     <div style="font-weight:700; margin-bottom:10px;">📋 공지사항</div>
     <div id="notice-list"></div>
-    
     <div style="margin-top:20px; border-top:1px solid #eee; padding-top:20px;">
         <details>
-            <summary style="font-weight:700; color:var(--blue); cursor:pointer; padding:10px; background:#fff; border-radius:12px; border:1px solid var(--border);">🔑 공유 계정 정보 보기 (클릭)</summary>
+            <summary style="font-weight:700; color:var(--blue); cursor:pointer; padding:12px; background:#fff; border-radius:12px; border:1px solid var(--border);">🔑 공유 계정 정보 보기</summary>
             <div id="account-board-list" style="margin-top:15px;"></div>
         </details>
     </div>
@@ -154,7 +155,7 @@ function goTab(id, el){
   el.classList.add('active');
 }
 
-// ── Firebase 설정 ──
+// ── Firebase 초기화 ──
 const u=localStorage.getItem('fb_url'), k=localStorage.getItem('fb_key'), pr=localStorage.getItem('fb_project');
 if(u) {
   const app = firebase.initializeApp({apiKey:k, databaseURL:u, projectId:pr});
@@ -164,8 +165,14 @@ if(u) {
 }
 
 function listen(){
-  lRef.on('value', s=>{ lectures = Object.values(s.val()||[]); renderLectures(); renderAdminLec(); });
-  uRef.on('value', s=>{ users = s.val()||{}; renderUsers(); });
+  lRef.on('value', s=>{
+    lectures = Object.values(s.val()||[]);
+    const options = '<option value="">강의 선택</option>' + lectures.map(l=>`<option value="${l.name}">${l.name}</option>`).join('');
+    document.getElementById('in-lecture').innerHTML = options;
+    document.getElementById('progress-lecture-select').innerHTML = options; // 진도 탭 강의 선택지
+    renderLectures(); renderAdminLec();
+  });
+  uRef.on('value', s=>{ users = s.val()||{}; renderUsers(); updateBtn(); });
   nRef.on('value', s=>{ notices = s.val()||{}; renderNotices(); renderAdminNtc(); });
   aRef.on('value', s=>{ 
     accounts = s.val()||{}; renderAccBoard(); renderAdminAcc();
@@ -174,195 +181,87 @@ function listen(){
   pRef.on('value', s=>{ progressData = s.val()||{}; updateUserSuggestions(); loadUserProgress(); });
 }
 
-// ── 관리자 인증 (Firebase admin_pw 연동) ──
-function unlockAdmin() { 
+// ── 관리자 인증 (Firebase 실시간 연동) ──
+function unlockAdmin() {
   const inputPw = document.getElementById('admin-pw').value;
-  pwRef.once('value', s => { 
-    const serverPw = s.val(); 
-    if(serverPw && inputPw === String(serverPw)){ 
-      document.getElementById('admin-tools').style.display='block'; 
-      document.getElementById('admin-auth').style.display='none'; 
+  pwRef.once('value', s => {
+    const serverPw = String(s.val() || '');
+    if (inputPw !== "" && inputPw === serverPw) {
+      document.getElementById('admin-tools').style.display = 'block';
+      document.getElementById('admin-auth').style.display = 'none';
       renderAdminNtc(); renderAdminLec(); renderAdminAcc();
-    } else { alert("비밀번호가 틀렸습니다. Firebase의 admin_pw를 확인하세요."); }
-  }); 
+    } else { alert("비밀번호가 틀렸습니다."); }
+  });
 }
-
 function openAdmin() { document.getElementById('admin-overlay').style.display='flex'; }
-function closeAdmin() { 
-  document.getElementById('admin-overlay').style.display='none'; 
-  document.getElementById('admin-auth').style.display='block';
-  document.getElementById('admin-tools').style.display='none';
-  document.getElementById('admin-pw').value='';
-}
+function closeAdmin() { document.getElementById('admin-overlay').style.display='none'; document.getElementById('admin-auth').style.display='block'; document.getElementById('admin-tools').style.display='none'; document.getElementById('admin-pw').value=''; }
 
 function showSub(id, btn){
   document.querySelectorAll('.tool-box').forEach(b=>b.style.display='none');
   document.querySelectorAll('.btn-sub').forEach(b=>b.classList.remove('active'));
-  document.getElementById('sub-'+id).style.display='block';
-  btn.classList.add('active');
-  resetForm();
+  document.getElementById('sub-'+id).style.display='block'; btn.classList.add('active'); resetForm();
 }
 
-function resetForm(){
-  editTgt = { type: null, id: null };
-  document.getElementById('btn-ntc-save').textContent="저장";
-  document.getElementById('btn-lec-save').textContent="저장";
-  document.getElementById('btn-acc-save').textContent="저장";
-  ['ntc-title','ntc-body','lec-name','lec-cap','acc-label','acc-id','acc-pw'].forEach(i=>{if(document.getElementById(i)) document.getElementById(i).value='';});
-}
-
-// ── 관리자 수정/삭제 리스트 렌더링 ──
-function renderAdminNtc(){
-  const el = document.getElementById('ntc-mng-list');
-  if(!el) return;
-  el.innerHTML = Object.entries(notices).map(([id, n]) => `
-    <div class="admin-item-row">
-      <span>${n.title}</span>
-      <div>
-        <span onclick="loadNtc('${id}')" style="color:blue; cursor:pointer; margin-right:8px;">수정</span>
-        <span onclick="if(confirm('삭제?')) nRef.child('${id}').remove();" style="color:red; cursor:pointer;">삭제</span>
-      </div>
-    </div>`).join('');
-}
-function loadNtc(id){
-    editTgt = { type: 'ntc', id: id };
-    document.getElementById('ntc-title').value = notices[id].title;
-    document.getElementById('ntc-body').value = notices[id].body;
-    document.getElementById('btn-ntc-save').textContent = "수정 완료";
-}
-function addNotice(){
-    const t = document.getElementById('ntc-title').value, b = document.getElementById('ntc-body').value;
-    if(editTgt.type==='ntc') nRef.child(editTgt.id).update({title:t, body:b});
-    else nRef.push({title:t, body:b, ts:Date.now()});
-    resetForm();
-}
-
-function renderAdminLec(){
-    const el = document.getElementById('lec-mng-list');
-    if(!el) return;
-    el.innerHTML = lectures.map((l, i) => `
-        <div class="admin-item-row">
-            <span>${l.name}</span>
-            <div>
-                <span onclick="loadLec(${i})" style="color:blue; cursor:pointer; margin-right:8px;">수정</span>
-                <span onclick="if(confirm('삭제?')){lectures.splice(${i},1); lRef.set(lectures);}" style="color:red; cursor:pointer;">삭제</span>
-            </div>
-        </div>`).join('');
-}
-function loadLec(i){
-    editTgt = { type: 'lec', id: i };
-    const l = lectures[i];
-    document.getElementById('lec-name').value = l.name;
-    document.getElementById('lec-cap').value = l.cap;
-    document.getElementById('lec-acc-select').value = l.accId || '';
-    document.getElementById('btn-lec-save').textContent = "수정 완료";
-}
-function addLecture(){
-    const n = document.getElementById('lec-name').value, c = document.getElementById('lec-cap').value, a = document.getElementById('lec-acc-select').value;
-    if(editTgt.type==='lec') lectures[editTgt.id] = {name:n, cap:c, accId:a};
-    else lectures.push({name:n, cap:c, accId:a});
-    lRef.set(lectures); resetForm();
-}
-
-function renderAdminAcc(){
-    const el = document.getElementById('acc-mng-list');
-    if(!el) return;
-    el.innerHTML = Object.entries(accounts).map(([id, a]) => `
-        <div class="admin-item-row">
-            <span>${a.label}</span>
-            <div>
-                <span onclick="loadAcc('${id}')" style="color:blue; cursor:pointer; margin-right:8px;">수정</span>
-                <span onclick="if(confirm('삭제?')) aRef.child('${id}').remove();" style="color:red; cursor:pointer;">삭제</span>
-            </div>
-        </div>`).join('');
-}
-function loadAcc(id){
-    editTgt = { type: 'acc', id: id };
-    const a = accounts[id];
-    document.getElementById('acc-label').value = a.label;
-    document.getElementById('acc-id').value = a.id;
-    document.getElementById('acc-pw').value = a.pw;
-    document.getElementById('btn-acc-save').textContent = "수정 완료";
-}
-function addAccount(){
-    const l = document.getElementById('acc-label').value, i = document.getElementById('acc-id').value, p = document.getElementById('acc-pw').value;
-    if(editTgt.type==='acc') aRef.child(editTgt.id).update({label:l, id:i, pw:p});
-    else aRef.push({label:l, id:i, pw:p, ts:Date.now()});
-    resetForm();
-}
-
-// ── 데이터 렌더링 (사용자용) ──
-function renderNotices(){
-  const arr = Object.entries(notices).sort((a,b)=>b[1].ts-a[1].ts);
-  document.getElementById('notice-list').innerHTML = arr.map(([id, n])=>`
-    <div class="card" onclick="openNtc('${id}')" style="cursor:pointer;">
-        <b>${n.title}</b>
-        <div style="font-size:12px; color:#666; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${n.body}</div>
-    </div>`).join('') || '<small>공지가 없습니다.</small>';
-}
-function openNtc(id){ document.getElementById('detail-title').textContent=notices[id].title; document.getElementById('detail-body').textContent=notices[id].body; document.getElementById('notice-overlay').style.display='flex'; }
-
-function renderAccBoard(){
-  document.getElementById('account-board-list').innerHTML = Object.values(accounts).map(a=>`
-    <div class="card" style="border-left:4px solid var(--blue); background:#f9fafb;">
-        <b>${a.label}</b>
-        <div style="margin-top:8px; font-size:13px;">ID: ${a.id} / PW: ${a.pw}</div>
-    </div>`).join('') || '<small>등록된 계정이 없습니다.</small>';
-}
-
-function renderLectures(){
-  document.getElementById('lecture-display-list').innerHTML = lectures.map(l=>{
-    let acc = (l.accId && accounts[l.accId]) ? `<div style="font-size:11px; color:var(--blue); margin-top:5px;">🔑 계정: ${accounts[l.accId].label}</div>` : '';
-    return `<div class="card"><b>${l.name}</b> (정원 ${l.cap})${acc}</div>`;
-  }).join('');
-}
-
-function renderUsers(){
-  const arr = Object.entries(users);
-  document.getElementById('user-list').innerHTML = arr.map(([id,u])=>`
-    <div class="card"><b>${u.name}</b> <small>(${u.lecture})</small><button onclick="uRef.child('${id}').remove()" style="float:right; border:none; padding:4px 8px; border-radius:5px; cursor:pointer;">종료</button></div>`).join('');
-}
-
-// ── 이름 및 진도 로직 ──
-function checkInitialName() {
-  if (!myName) document.getElementById('name-setup-overlay').style.display = 'flex';
-  else { 
-    document.getElementById('name-setup-overlay').style.display = 'none'; 
-    updateNameUI(); 
-    document.getElementById('progress-user-input').value = myName; // [추가] 진도 칸 자동 입력
-    loadUserProgress();
-  }
-}
-function saveInitialName() {
-  const v = document.getElementById('initial-name-input').value.trim();
-  if(!v) return alert("이름을 입력하세요!");
-  myName = v; localStorage.setItem('my_name', v);
-  checkInitialName();
-}
-function updateNameUI(){ document.getElementById('display-name').textContent=`👤 ${myName} 님`; }
-
-function updateUserSuggestions() {
-  const dl = document.getElementById('user-suggestions');
-  const names = Object.keys(progressData);
-  if(myName && !names.includes(myName)) names.push(myName);
-  dl.innerHTML = names.map(n => `<option value="${n}">`).join('');
-}
+// ── 진도 기록 및 조회 ──
 function loadUserProgress() {
   const target = document.getElementById('progress-user-input').value.trim();
   const display = document.getElementById('progress-display');
   const mySect = document.getElementById('my-progress-section');
-  if(!target) { display.textContent = "이름을 입력하세요."; mySect.style.display = 'none'; return; }
-  display.textContent = progressData[target] || "기록된 진도가 없습니다.";
-  if(target === myName) {
-    mySect.style.display = 'block';
-    if(!document.getElementById('my-progress-input').matches(':focus')) document.getElementById('my-progress-input').value = progressData[myName] || "";
-  } else { mySect.style.display = 'none'; }
-}
-function saveMyProgress() { pRef.child(myName).set(document.getElementById('my-progress-input').value.trim()); toast("저장됨"); }
+  if(!target) { display.textContent="이름을 입력하세요."; mySect.style.display='none'; return; }
+  
+  const data = progressData[target];
+  if(data) {
+    const text = typeof data === 'string' ? data : data.text;
+    const lec = data.lecture ? `[${data.lecture}] ` : "";
+    display.textContent = lec + text;
+  } else { display.textContent = "기록된 진도가 없습니다."; }
 
+  if(target === myName) {
+    mySect.style.display='block';
+    if(!document.getElementById('my-progress-input').matches(':focus')) {
+      document.getElementById('my-progress-input').value = (data && data.text) ? data.text : (typeof data === 'string' ? data : "");
+      document.getElementById('progress-lecture-select').value = (data && data.lecture) ? data.lecture : "";
+    }
+  } else { mySect.style.display='none'; }
+}
+
+function saveMyProgress() {
+  const text = document.getElementById('my-progress-input').value.trim();
+  const lec = document.getElementById('progress-lecture-select').value;
+  if(myName) {
+    pRef.child(myName).set({ text: text, lecture: lec });
+    toast("진도가 저장되었습니다.");
+  }
+}
+
+// ── 관리자 데이터 관리 ──
+function resetForm(){ editTgt={type:null,id:null}; ['ntc-title','ntc-body','lec-name','lec-cap','acc-label','acc-id','acc-pw'].forEach(i=>{if(document.getElementById(i))document.getElementById(i).value='';}); document.getElementById('btn-ntc-save').textContent="저장"; document.getElementById('btn-lec-save').textContent="저장"; document.getElementById('btn-acc-save').textContent="저장"; }
+function addNotice(){ const t=document.getElementById('ntc-title').value, b=document.getElementById('ntc-body').value; if(editTgt.type==='ntc') nRef.child(editTgt.id).update({title:t, body:b}); else nRef.push({title:t, body:b, ts:Date.now()}); resetForm(); }
+function addLecture(){ const n=document.getElementById('lec-name').value, c=document.getElementById('lec-cap').value, a=document.getElementById('lec-acc-select').value; if(editTgt.type==='lec') lectures[editTgt.id]={name:n, cap:c, accId:a}; else lectures.push({name:n, cap:c, accId:a}); lRef.set(lectures); resetForm(); }
+function addAccount(){ const l=document.getElementById('acc-label').value, i=document.getElementById('acc-id').value, p=document.getElementById('acc-pw').value; if(editTgt.type==='acc') aRef.child(editTgt.id).update({label:l,id:i,pw:p}); else aRef.push({label:l,id:i,pw:p,ts:Date.now()}); resetForm(); }
+
+function renderAdminNtc(){ const el=document.getElementById('ntc-mng-list'); if(!el)return; el.innerHTML=Object.entries(notices).map(([id,n])=>`<div class="admin-item-row"><span>${n.title}</span><div><span onclick="loadNtc('${id}')" style="color:blue;cursor:pointer;margin-right:8px;">수정</span><span onclick="if(confirm('삭제?'))nRef.child('${id}').remove();" style="color:red;cursor:pointer;">삭제</span></div></div>`).join(''); }
+function loadNtc(id){ editTgt={type:'ntc',id:id}; document.getElementById('ntc-title').value=notices[id].title; document.getElementById('ntc-body').value=notices[id].body; document.getElementById('btn-ntc-save').textContent="수정 완료"; }
+function renderAdminLec(){ const el=document.getElementById('lec-mng-list'); if(!el)return; el.innerHTML=lectures.map((l,i)=>`<div class="admin-item-row"><span>${l.name}</span><div><span onclick="loadLec(${i})" style="color:blue;cursor:pointer;margin-right:8px;">수정</span><span onclick="if(confirm('삭제?')){lectures.splice(${i},1);lRef.set(lectures);}" style="color:red;cursor:pointer;">삭제</span></div></div>`).join(''); }
+function loadLec(i){ editTgt={type:'lec',id:i}; const l=lectures[i]; document.getElementById('lec-name').value=l.name; document.getElementById('lec-cap').value=l.cap; document.getElementById('lec-acc-select').value=l.accId||''; document.getElementById('btn-lec-save').textContent="수정 완료"; }
+function renderAdminAcc(){ const el=document.getElementById('acc-mng-list'); if(!el)return; el.innerHTML=Object.entries(accounts).map(([id,a])=>`<div class="admin-item-row"><span>${a.label}</span><div><span onclick="loadAcc('${id}')" style="color:blue;cursor:pointer;margin-right:8px;">수정</span><span onclick="if(confirm('삭제?'))aRef.child('${id}').remove();" style="color:red;cursor:pointer;">삭제</span></div></div>`).join(''); }
+function loadAcc(id){ editTgt={type:'acc',id:id}; const a=accounts[id]; document.getElementById('acc-label').value=a.label; document.getElementById('acc-id').value=a.id; document.getElementById('acc-pw').value=a.pw; document.getElementById('btn-acc-save').textContent="수정 완료"; }
+
+// ── 사용자 인터페이스 유틸 ──
+function checkInitialName(){ if(!myName)document.getElementById('name-setup-overlay').style.display='flex'; else{document.getElementById('name-setup-overlay').style.display='none'; updateNameUI(); document.getElementById('progress-user-input').value=myName; loadUserProgress();}}
+function saveInitialName(){ const v=document.getElementById('initial-name-input').value.trim(); if(!v)return alert("이름을 입력하세요!"); myName=v; localStorage.setItem('my_name',v); checkInitialName(); }
+function updateNameUI(){ document.getElementById('display-name').textContent=`👤 ${myName} 님`; document.getElementById('in-name').value=myName; }
+function handleReg(){ uRef.push({name:myName, lecture:document.getElementById('in-lecture').value, status:'active', ts:Date.now()}); toast("신청 완료"); }
+function renderUsers(){ document.getElementById('user-list').innerHTML=Object.entries(users).map(([id,u])=>`<div class="card"><b>${u.name}</b> <small>(${u.lecture})</small><button onclick="uRef.child('${id}').remove()" style="float:right; border:none; padding:4px 8px; border-radius:5px; cursor:pointer;">종료</button></div>`).join(''); }
+function updateBtn(){ const btn=document.getElementById('btn-submit'), lec=document.getElementById('in-lecture').value; btn.disabled=!myName||!lec; btn.className=btn.disabled?"btn btn-gray":"btn btn-blue"; if(!btn.disabled) btn.textContent="🟢 신청하기"; }
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 2000); }
 function forceReset(){ localStorage.clear(); location.reload(); }
-function changeName() { if(confirm("이름을 변경하시겠습니까?")) { localStorage.removeItem('my_name'); myName=''; checkInitialName(); } }
+function changeName(){ if(confirm("이름을 변경하시겠습니까?")){ localStorage.removeItem('my_name'); myName=''; checkInitialName(); } }
+function updateUserSuggestions(){ const dl=document.getElementById('user-suggestions'); const names=Object.keys(progressData); if(myName&&!names.includes(myName))names.push(myName); dl.innerHTML=names.map(n=>`<option value="${n}">`).join(''); }
+function renderNotices(){ document.getElementById('notice-list').innerHTML=Object.entries(notices).sort((a,b)=>b[1].ts-a[1].ts).map(([id,n])=>`<div class="card" onclick="openNtc('${id}')" style="cursor:pointer;"><b>${n.title}</b><div style="font-size:12px; color:#666; margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${n.body}</div></div>`).join('')||'<small>공지가 없습니다.</small>'; }
+function renderAccBoard(){ document.getElementById('account-board-list').innerHTML=Object.values(accounts).map(a=>`<div class="card" style="border-left:4px solid var(--blue); background:#f9fafb;"><b>${a.label}</b><div style="margin-top:8px; font-size:13px;">ID: ${a.id} / PW: ${a.pw}</div></div>`).join('')||'<small>계정이 없습니다.</small>'; }
+function renderLectures(){ document.getElementById('lecture-display-list').innerHTML=lectures.map(l=>{ let acc=(l.accId&&accounts[l.accId])?`<div style="font-size:11px; color:var(--blue); margin-top:5px;">🔑 계정: ${accounts[l.accId].label}</div>`:''; return `<div class="card"><b>${l.name}</b> (정원 ${l.cap})${acc}</div>`; }).join(''); }
+function openNtc(id){ document.getElementById('detail-title').textContent=notices[id].title; document.getElementById('detail-body').textContent=notices[id].body; document.getElementById('notice-overlay').style.display='flex'; }
 
 checkInitialName();
 </script>
