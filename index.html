@@ -128,7 +128,6 @@ function goTab(id, el){
     if(el) el.classList.add('active');
 }
 
-/** 설정 **/
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1498503995528843426/MegqrgkoIBgr_xdYvEkB-PnWzh57_SZubFCKB_u0LbzNogBsC97t_8GMmTPR7eUgf5LX";
 const firebaseConfig = { apiKey: "AIzaSyBy4_hmtnhYbbC7icOtajmpGvix4LO3Xhk", databaseURL: "https://muer-love-default-rtdb.firebaseio.com/", projectId: "muer-love" };
 const app = firebase.initializeApp(firebaseConfig);
@@ -199,54 +198,59 @@ function updateTimers() {
     });
 }
 
-/** [핵심] 로그인 신청 버튼 상태 업데이트 (중복 체크 포함) **/
+/** [핵심] 정원 여부에 따른 버튼 업데이트 **/
 function updateBtn(){
     const btn = document.getElementById('btn-submit'), accId = document.getElementById('in-account').value;
     if(!myName || !accId) { btn.disabled = true; btn.className = "btn btn-gray"; btn.textContent = "계정을 선택하세요"; return; }
 
-    const accUsers = Object.values(users).filter(u => u.accId === accId);
-    const activeCount = accUsers.filter(u => u.status === 'active').length;
-    const isFull = activeCount >= (parseInt(accounts[accId]?.cap) || 1);
-    const targetStatus = isFull ? 'waiting' : 'active';
+    const activeCount = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length;
+    const capacity = parseInt(accounts[accId]?.cap) || 1;
+    const isFull = activeCount >= capacity;
 
-    // 중복 체크 로직
     const isAlreadyOnThisAcc = Object.values(users).some(u => u.name === myName && u.accId === accId);
     const hasAnyActive = Object.values(users).some(u => u.name === myName && u.status === 'active');
     const hasAnyWaiting = Object.values(users).some(u => u.name === myName && u.status === 'waiting');
 
     if(isAlreadyOnThisAcc) {
         btn.disabled = true; btn.className = "btn btn-gray"; btn.textContent = "이미 신청된 계정";
-    } else if (targetStatus === 'active' && hasAnyActive) {
+    } else if (!isFull && hasAnyActive) {
         btn.disabled = true; btn.className = "btn btn-gray"; btn.textContent = "이미 다른 계정 사용 중";
-    } else if (targetStatus === 'waiting' && hasAnyWaiting) {
+    } else if (isFull && hasAnyWaiting) {
         btn.disabled = true; btn.className = "btn btn-gray"; btn.textContent = "이미 다른 계정 대기 중";
     } else {
         btn.disabled = false;
-        btn.className = isFull ? "btn btn-amber" : "btn btn-green";
-        btn.textContent = isFull ? "🟡 대기 등록하기" : "🟢 지금 로그인하기";
+        if (isFull) {
+            btn.className = "btn btn-amber"; btn.textContent = "🟡 대기 등록하기";
+        } else {
+            btn.className = "btn btn-green"; btn.textContent = "🟢 지금 로그인하기";
+        }
     }
 }
 
-/** [핵심] 로그인 신청 로직 (서버측 중복 검증) **/
+/** [핵심] 로그인 신청 로직 **/
 function handleReg(){
     const accId = document.getElementById('in-account').value;
     const activeCount = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length;
-    const isFull = activeCount >= (parseInt(accounts[accId]?.cap) || 1);
+    const capacity = parseInt(accounts[accId]?.cap) || 1;
+    const isFull = activeCount >= capacity;
+
     const status = isFull ? 'waiting' : 'active';
-
-    const hasAnyActive = Object.values(users).some(u => u.name === myName && u.status === 'active');
-    const hasAnyWaiting = Object.values(users).some(u => u.name === myName && u.status === 'waiting');
-
-    if (status === 'active' && hasAnyActive) return alert("동시에 두 개의 계정을 사용할 수 없습니다. 기존 계정 로그아웃 후 이용해 주세요.");
-    if (status === 'waiting' && hasAnyWaiting) return alert("이미 한 계정에 대기 중입니다. 대기는 한 번에 하나만 가능합니다.");
-
-    uRef.push({name:myName, accId:accId, status:status, ts:Date.now(), promoteTime: status==='active'?Date.now():null, confirmed: status==='active'});
+    // 즉시 로그인 시에는 확인(confirmed)을 true로 설정하여 5분 팝업 생략
+    uRef.push({
+        name: myName, 
+        accId: accId, 
+        status: status, 
+        ts: Date.now(), 
+        promoteTime: status === 'active' ? Date.now() : null, 
+        confirmed: status === 'active' 
+    });
+    toast(status === 'active' ? "즉시 로그인 완료!" : "대기열 등록 완료!");
 }
 
 function loadNtc(id) { editTgt={type:'ntc', id:id}; document.getElementById('ntc-title').value=notices[id].title; document.getElementById('ntc-body').value=notices[id].body; document.getElementById('btn-ntc-save').innerText="수정 완료"; }
-function addNotice(){ const t=document.getElementById('ntc-title').value, b=document.getElementById('ntc-body').value; if(!t) return; const ref=editTgt.type==='ntc'?nRef.child(editTgt.id):nRef.push(); ref.set({title:t, body:b, ts:Date.now()}).then(()=>resetForm()); }
+function addNotice(){ const t=document.getElementById('ntc-title').value, b=document.getElementById('ntc-body').value; if(!t) return; const ref = editTgt.type==='ntc' ? nRef.child(editTgt.id) : nRef.push(); ref.set({title:t, body:b, ts:Date.now()}).then(()=>resetForm()); }
 function loadAcc(id) { editTgt={type:'acc', id:id}; const a=accounts[id]; document.getElementById('acc-label').value=a.label; document.getElementById('acc-owner').value=a.owner; document.getElementById('acc-id').value=a.id; document.getElementById('acc-pw').value=a.pw; document.getElementById('acc-cap').value=a.cap||1; document.getElementById('btn-acc-save').innerText="수정 완료"; }
-function addAccount(){ const l=document.getElementById('acc-label').value, o=document.getElementById('acc-owner').value, i=document.getElementById('acc-id').value, p=document.getElementById('acc-pw').value, c=document.getElementById('acc-cap').value; if(!l) return; const ref=editTgt.type==='acc'?aRef.child(editTgt.id):aRef.push(); ref.set({label:l, owner:o, id:i, pw:p, cap:c}).then(()=>resetForm()); }
+function addAccount(){ const l=document.getElementById('acc-label').value, o=document.getElementById('acc-owner').value, i=document.getElementById('acc-id').value, p=document.getElementById('acc-pw').value, c=document.getElementById('acc-cap').value; if(!l) return; const ref = editTgt.type==='acc' ? aRef.child(editTgt.id) : aRef.push(); ref.set({label:l, owner:o, id:i, pw:p, cap:c}).then(()=>resetForm()); }
 function resetForm(){ editTgt={type:null, id:null}; ['ntc-title','ntc-body','acc-label','acc-owner','acc-id','acc-pw','acc-cap'].forEach(i=>{if(document.getElementById(i)) document.getElementById(i).value='';}); document.getElementById('btn-ntc-save').innerText="저장"; document.getElementById('btn-acc-save').innerText="저장"; }
 function confirmLogin() { const myEntry = Object.entries(users).find(([id, u]) => u.name === myName && u.status === 'active'); if (myEntry) uRef.child(myEntry[0]).update({ confirmed: true }); }
 function closeTimeoutPopup() { document.getElementById('timeout-popup-overlay').style.display = 'none'; }
