@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🔑 Muer 로그인 현황 & 알림</title>
+<title>🔑 Muer Login</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -12,7 +12,6 @@
 *{box-sizing:border-box; margin:0; padding:0;}
 body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:#111; padding-bottom:80px;}
 
-/* 헤더 및 탭바 */
 .header{background:#fff; padding:1rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100;}
 .tabbar{position:fixed; bottom:0; left:0; right:0; height:60px; background:#fff; border-top:1px solid var(--border); display:flex; z-index:200;}
 .tab{flex:1; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; color:var(--gray); flex-direction:column;}
@@ -21,7 +20,6 @@ body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:#111; pa
 .panel{display:none; padding:1rem;}
 .panel.active{display:block !important;}
 
-/* 팝업 */
 .overlay{position:fixed; inset:0; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; z-index:1000; padding:20px;}
 .popup{background:#fff; border-radius:20px; padding:25px; width:100%; max-width:420px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.3); max-height:85vh; overflow-y:auto;}
 .close-btn{position:absolute; top:15px; right:15px; background:none; border:none; font-size:24px; cursor:pointer; color:var(--gray);}
@@ -39,7 +37,10 @@ body{font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:#111; pa
 
 input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); margin-bottom:8px; outline:none; font-family:inherit;}
 .acc-info-box { background:#f0f7ff; border-radius:8px; padding:10px; margin-top:10px; font-size:13px; border:1px solid #dbeafe; line-height:1.6; }
-.admin-item-row{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee; font-size:13px;}
+
+/* 타임아웃 강조 스타일 */
+.timer-text { font-size: 11px; color: var(--red); font-weight: 700; margin-top: 4px; display: block; }
+.my-turn-card { border: 2px solid var(--amber) !important; background: #fffbeb !important; }
 </style>
 </head>
 <body>
@@ -54,9 +55,10 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
 
 <div class="overlay" id="turn-popup-overlay">
   <div class="popup" style="text-align:center; border:4px solid var(--amber);">
-    <h2 style="color:var(--amber); margin-bottom:10px;">🔔 로그인 하세요!</h2>
-    <p id="turn-popup-msg" style="margin-bottom:20px; line-height:1.6; font-weight:500;"></p>
-    <button onclick="document.getElementById('turn-popup-overlay').style.display='none'" class="btn btn-amber">확인했습니다</button>
+    <h2 style="color:var(--amber); margin-bottom:10px;">🔔 지금 로그인하세요!</h2>
+    <p id="turn-popup-msg" style="margin-bottom:10px; line-height:1.6; font-weight:500;"></p>
+    <p style="color:var(--red); font-size:13px; margin-bottom:20px;">※ 5분 내에 로그인 확인을 안 하면 대기열에서 자동 삭제됩니다.</p>
+    <button onclick="confirmLogin()" class="btn btn-blue">로그인 확인 (사용 시작)</button>
   </div>
 </div>
 
@@ -68,12 +70,8 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
         <button onclick="showSub('ntc',this)" class="btn-sub active" style="flex:1; font-size:11px; padding:10px; border:none; border-radius:8px; cursor:pointer; background:var(--blue); color:white;">공지</button>
         <button onclick="showSub('acc',this)" class="btn-sub" style="flex:1; font-size:11px; padding:10px; border:none; border-radius:8px; cursor:pointer; background:#f3f4f6;">계정 설정</button>
     </div>
-    <div id="sub-ntc" class="tool-box"><input type="text" id="ntc-title" placeholder="제목"><textarea id="ntc-body" rows="3" placeholder="내용"></textarea><button id="btn-ntc-save" onclick="addNotice()" class="btn btn-blue">저장</button><div id="ntc-mng-list" style="margin-top:15px;"></div></div>
-    <div id="sub-acc" class="tool-box" style="display:none;">
-        <input type="text" id="acc-label" placeholder="사이트명"><input type="text" id="acc-owner" placeholder="계정 주인"><input type="text" id="acc-id" placeholder="ID"><input type="text" id="acc-pw" placeholder="PW"><input type="number" id="acc-cap" placeholder="정원" value="1">
-        <button id="btn-acc-save" onclick="addAccount()" class="btn btn-gray">계정 저장</button>
-        <div id="acc-mng-list" style="margin-top:15px;"></div>
-    </div>
+    <div id="sub-ntc" class="tool-box"><input type="text" id="ntc-title" placeholder="제목"><textarea id="ntc-body" rows="3" placeholder="내용"></textarea><button onclick="addNotice()" class="btn btn-blue">저장</button><div id="ntc-mng-list" style="margin-top:15px;"></div></div>
+    <div id="sub-acc" class="tool-box" style="display:none;"><input type="text" id="acc-label" placeholder="사이트명"><input type="text" id="acc-owner" placeholder="계정 주인"><input type="text" id="acc-id" placeholder="ID"><input type="text" id="acc-pw" placeholder="PW"><input type="number" id="acc-cap" placeholder="정원" value="1"><button onclick="addAccount()" class="btn btn-gray">계정 저장</button><div id="acc-mng-list" style="margin-top:15px;"></div></div>
   </div>
 </div>
 
@@ -93,7 +91,7 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
         <div class="stat"><span class="stat-num" id="stat-total">0</span><small>전체</small></div>
     </div>
     <div class="card" style="border:2px solid var(--blue);">
-        <div style="font-weight:700; margin-bottom:10px; font-size:14px;">🚀 로그인하기</div>
+        <div style="font-weight:700; margin-bottom:10px; font-size:14px;">🚀 로그인 신청</div>
         <div style="display:flex; gap:8px;">
             <input type="text" id="in-name" readonly style="width:90px; background:#f3f4f6;">
             <select id="in-account" onchange="updateBtn()"><option value="">계정 선택</option></select>
@@ -103,15 +101,8 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
     <div id="user-list"></div>
 </div>
 
-<div class="panel" id="panel-accounts">
-    <div style="font-weight:700; margin-bottom:15px;">🎓 공유 계정 및 접속 정보</div>
-    <div id="account-display-list"></div>
-</div>
-
-<div class="panel" id="panel-notice">
-    <div style="font-weight:700; margin-bottom:10px;">📋 공지사항</div>
-    <div id="notice-list"></div>
-</div>
+<div class="panel" id="panel-accounts"><div id="account-display-list"></div></div>
+<div class="panel" id="panel-notice"><div id="notice-list"></div></div>
 
 <div class="tabbar">
   <div class="tab active" onclick="goTab('status',this)">📊<span>현황</span></div>
@@ -131,9 +122,8 @@ function goTab(id, el){
     if(el) el.classList.add('active');
 }
 
-/** [설정] 디스코드 및 Firebase **/
+/** 설정 **/
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1498503995528843426/MegqrgkoIBgr_xdYvEkB-PnWzh57_SZubFCKB_u0LbzNogBsC97t_8GMmTPR7eUgf5LX";
-
 const firebaseConfig = {
     apiKey: "AIzaSyBy4_hmtnhYbbC7icOtajmpGvix4LO3Xhk",
     databaseURL: "https://muer-love-default-rtdb.firebaseio.com/",
@@ -144,109 +134,129 @@ const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const uRef=db.ref('login_users'), nRef=db.ref('notices'), aRef=db.ref('accounts');
 
-let accounts={}, users={}, notices={}, myName=localStorage.getItem('my_name')||'', lastStatus=null, editTgt={type:null, id:null};
+let accounts={}, users={}, notices={}, myName=localStorage.getItem('my_name')||'', lastStatus=null;
 
-/** 디스코드 알림 발송 **/
+/** 알림 발송 **/
 function sendDiscordAlert(userName, accName) {
     fetch(DISCORD_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            content: `🔔 **차례 알림**\n**${userName}**님, 기다리시던 [**${accName}**] 계정의 사용 차례가 되었습니다! 지금 접속해 주세요.`
+            content: `🔔 **차례 알림**\n**${userName}**님, [**${accName}**] 사용 차례입니다! 5분 내로 접속 확인 버튼을 눌러주세요.`
         })
     });
 }
 
-/** 실시간 데이터 감시 **/
+/** 실시간 감시 **/
 function listen(){
   aRef.on('value', s=>{
     accounts = s.val() || {};
     const opts = '<option value="">계정 선택</option>' + Object.entries(accounts).map(([id, a])=>`<option value="${id}">${a.label}</option>`).join('');
     document.getElementById('in-account').innerHTML = opts;
-    renderAccountBoard(); renderAdminAcc(); updateBtn();
+    renderAccountBoard(); updateBtn();
   });
   
   uRef.on('value', s=>{
     users = s.val() || {};
-    const myInfo = Object.values(users).find(u => u.name === myName);
-    if (myInfo && lastStatus === 'waiting' && myInfo.status === 'active') {
-        document.getElementById('turn-popup-msg').innerText = `[${accounts[myInfo.accId]?.label || '선택 계정'}] 로그인 차례가 되었습니다!`;
+    const myEntry = Object.entries(users).find(([id, u]) => u.name === myName);
+    
+    // 내 상태가 대기 -> 사용중으로 변했을 때 팝업
+    if (myEntry && lastStatus === 'waiting' && myEntry[1].status === 'active' && !myEntry[1].confirmed) {
+        document.getElementById('turn-popup-msg').innerText = `[${accounts[myEntry[1].accId]?.label || '선택 계정'}] 차례가 되었습니다.`;
         document.getElementById('turn-popup-overlay').style.display = 'flex';
     }
-    lastStatus = myInfo ? myInfo.status : null;
-    renderUsers(); updateBtn(); checkAndPromote();
+    lastStatus = myEntry ? myEntry[1].status : null;
+    
+    renderUsers(); 
+    checkAndPromote();
+    monitorTimeouts(); // 패스 관리 실행
   });
 
-  nRef.on('value', s=>{ notices = s.val()||{}; renderNotices(); renderAdminNtc(); });
+  nRef.on('value', s=>{ notices = s.val()||{}; renderNotices(); });
 }
 
+/** 핵심: 대기자 승급 시 타임스탬프 기록 **/
 function checkAndPromote() {
     Object.entries(accounts).forEach(([accId, acc]) => {
         const activeCount = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length;
         if (activeCount < (parseInt(acc.cap) || 1)) {
             const next = Object.entries(users).filter(([id, u]) => u.accId === accId && u.status === 'waiting').sort((a, b) => a[1].ts - b[1].ts)[0];
             if (next) {
-                uRef.child(next[0]).update({ status: 'active', ts: Date.now() });
-                sendDiscordAlert(next[1].name, acc.label); // 디스코드 전송
+                uRef.child(next[0]).update({ 
+                    status: 'active', 
+                    promoteTime: Date.now(), // 승급 시간 기록
+                    confirmed: false 
+                });
+                sendDiscordAlert(next[1].name, acc.label);
             }
         }
     });
 }
 
+/** 핵심: 5분 초과자 자동 삭제 **/
+function monitorTimeouts() {
+    const now = Date.now();
+    Object.entries(users).forEach(([id, u]) => {
+        if (u.status === 'active' && u.promoteTime && !u.confirmed) {
+            const diff = now - u.promoteTime;
+            if (diff > 300000) { // 5분 = 300,000ms
+                uRef.child(id).remove(); // 자동 삭제
+            }
+        }
+    });
+}
+
+/** 사용 시작 확인 **/
+function confirmLogin() {
+    const myEntry = Object.entries(users).find(([id, u]) => u.name === myName && u.status === 'active');
+    if (myEntry) {
+        uRef.child(myEntry[0]).update({ confirmed: true });
+        document.getElementById('turn-popup-overlay').style.display = 'none';
+        toast("로그인 확인 완료! 사용을 시작합니다.");
+    }
+}
+
 /** 렌더링 **/
 function renderUsers(){
+    const now = Date.now();
     const arr = Object.entries(users).sort((a,b)=>a[1].ts - b[1].ts);
     document.getElementById('stat-active').textContent = arr.filter(u=>u[1].status==='active').length;
     document.getElementById('stat-waiting').textContent = arr.filter(u=>u[1].status==='waiting').length;
     document.getElementById('stat-total').textContent = arr.length;
+    
     document.getElementById('user-list').innerHTML = arr.map(([id,u])=>`
-        <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:12px;">
-            <span><b>${u.name}</b> <small>(${accounts[u.accId]?.label || '...'})</small></span>
+        <div class="card ${(u.name===myName && u.status==='active' && !u.confirmed)?'my-turn-card':''}" style="display:flex; justify-content:space-between; align-items:center; padding:12px;">
+            <div>
+                <b>${u.name}</b> <small>(${accounts[u.accId]?.label || '...'})</small>
+                ${(u.status==='active' && !u.confirmed) ? `<span class="timer-text">⚠️ 5분 내 미확인 시 자동취소</span>` : ''}
+            </div>
             <div style="display:flex; align-items:center;">
-                <span style="font-size:11px; color:${u.status==='active'?'var(--green)':'var(--amber)'}; font-weight:700; margin-right:10px;">${u.status==='active'?'● 사용 중':'⏱ 대기 중'}</span>
-                ${(u.name === myName) ? `<button onclick="uRef.child('${id}').remove()" style="border:none; background:var(--red); color:#fff; padding:5px 10px; border-radius:5px; font-size:11px; cursor:pointer;">로그아웃</button>` : ""}
+                <span style="font-size:11px; color:${u.status==='active'?'var(--green)':'var(--amber)'}; font-weight:700; margin-right:10px;">${u.status==='active'?(u.confirmed?'● 사용 중':'🔔 확인 대기중'):'⏱ 대기 중'}</span>
+                ${(u.name === myName) ? `<button onclick="uRef.child('${id}').remove()" style="border:none; background:var(--red); color:#fff; padding:5px 10px; border-radius:5px; font-size:11px; cursor:pointer;">${u.status==='active'?'로그아웃':'취소'}</button>` : ""}
             </div>
         </div>`).join('');
 }
 
 function renderAccountBoard(){
     document.getElementById('account-display-list').innerHTML = Object.entries(accounts).map(([id, a])=>`
-        <div class="card">
-            <div style="display:flex; justify-content:space-between;"><b>${a.label}</b> <small>정원: ${a.cap || 1}명</small></div>
+        <div class="card"><div style="display:flex; justify-content:space-between;"><b>${a.label}</b> <small>정원: ${a.cap || 1}명</small></div>
             <div class="acc-info-box"><b>🔑 접속 정보</b><br>ID: ${a.id} / PW: ${a.pw}<br><small>👤 주인: ${a.owner || '미지정'}</small></div>
         </div>`).join('') || '<div class="card">등록된 계정 없음</div>';
 }
 
-/** 제어 로직 **/
+/** 기타 제어 **/
 function updateBtn(){
     const btn=document.getElementById('btn-submit'), accId=document.getElementById('in-account').value;
     if(!myName || !accId) { btn.disabled=true; btn.className="btn btn-gray"; btn.textContent="계정을 선택하세요"; return; }
-    const activeCount = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length;
     btn.disabled = false;
-    if(activeCount < (parseInt(accounts[accId]?.cap) || 1)) { btn.className = "btn btn-green"; btn.textContent = "🟢 지금 로그인하기"; }
-    else { btn.className = "btn btn-amber"; btn.textContent = "🟡 사용 대기하기"; }
+    const activeCount = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length;
+    if(activeCount < (parseInt(accounts[accId]?.cap) || 1)) { btn.className="btn btn-green"; btn.textContent="🟢 지금 로그인하기"; }
+    else { btn.className="btn btn-amber"; btn.textContent="🟡 사용 대기하기"; }
 }
 function handleReg(){
     if(Object.values(users).some(u=>u.name===myName)) return alert("이미 등록됨");
     const accId = document.getElementById('in-account').value;
     const status = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length < (parseInt(accounts[accId]?.cap) || 1) ? 'active' : 'waiting';
-    uRef.push({name:myName, accId:accId, status:status, ts:Date.now()});
+    uRef.push({name:myName, accId:accId, status:status, ts:Date.now(), promoteTime: status==='active'?Date.now():null, confirmed: status==='active'});
 }
-function openAdmin() { document.getElementById('admin-overlay').style.display='flex'; renderAdminNtc(); renderAdminAcc(); }
-function closeAdmin() { document.getElementById('admin-overlay').style.display='none'; resetForm(); }
-function showSub(id, btn){ document.querySelectorAll('.tool-box').forEach(b=>b.style.display='none'); document.querySelectorAll('.btn-sub').forEach(b=>b.style.background='#f3f4f6'); document.getElementById('sub-'+id).style.display='block'; btn.style.background='var(--blue)'; btn.style.color='#fff'; }
-function addNotice(){ const t=document.getElementById('ntc-title').value; if(t) nRef.push({title:t, body:document.getElementById('ntc-body').value, ts:Date.now()}).then(()=>resetForm()); }
-function addAccount(){ const l=document.getElementById('acc-label').value; if(l) aRef.push({label:l, owner:document.getElementById('acc-owner').value, id:document.getElementById('acc-id').value, pw:document.getElementById('acc-pw').value, cap:document.getElementById('acc-cap').value}).then(()=>resetForm()); }
-function renderAdminNtc(){ document.getElementById('ntc-mng-list').innerHTML=Object.entries(notices).map(([id,n])=>`<div class="admin-item-row">${n.title} <span onclick="nRef.child('${id}').remove()" style="color:red; cursor:pointer;">삭제</span></div>`).join(''); }
-function renderAdminAcc(){ document.getElementById('acc-mng-list').innerHTML=Object.entries(accounts).map(([id,a])=>`<div class="admin-item-row">${a.label} <span onclick="aRef.child('${id}').remove()" style="color:red; cursor:pointer;">삭제</span></div>`).join(''); }
-function renderNotices(){ document.getElementById('notice-list').innerHTML=Object.entries(notices).sort((a,b)=>b[1].ts-a[1].ts).map(([id,n])=>`<div class="card" onclick="alert('${n.body.replace(/\n/g, '\\n')}')"><b>${n.title}</b></div>`).join(''); }
-function resetForm(){ ['ntc-title','ntc-body','acc-label','acc-owner','acc-id','acc-pw','acc-cap'].forEach(i=>{if(document.getElementById(i)) document.getElementById(i).value='';}); }
-function checkInitialName(){ if(!myName) document.getElementById('name-setup-overlay').style.display='flex'; else { document.getElementById('display-name').textContent = `👤 ${myName} 님`; document.getElementById('in-name').value = myName; listen(); } }
-function saveInitialName(){ const v = document.getElementById('initial-name-input').value.trim(); if(!v) return alert("이름을 입력하세요!"); myName = v; localStorage.setItem('my_name', v); location.reload(); }
-function forceReset(){ if(confirm("이용자를 변경하시겠습니까?")){ localStorage.removeItem('my_name'); location.reload(); } }
-function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 2000); }
-
-checkInitialName();
-</script>
-</body>
-</html>
+function openAdmin() {
