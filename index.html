@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🔑 Muer 로그인 </title>
+<title>🔑 Muer 로그인 현황 & 알림</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -70,7 +70,7 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
     </div>
     <div id="sub-ntc" class="tool-box"><input type="text" id="ntc-title" placeholder="제목"><textarea id="ntc-body" rows="3" placeholder="내용"></textarea><button id="btn-ntc-save" onclick="addNotice()" class="btn btn-blue">저장</button><div id="ntc-mng-list" style="margin-top:15px;"></div></div>
     <div id="sub-acc" class="tool-box" style="display:none;">
-        <input type="text" id="acc-label" placeholder="사이트명 (예: 넷플릭스)"><input type="text" id="acc-owner" placeholder="계정 주인"><input type="text" id="acc-id" placeholder="아이디"><input type="text" id="acc-pw" placeholder="비밀번호"><input type="number" id="acc-cap" placeholder="동시 로그인 정원" value="1">
+        <input type="text" id="acc-label" placeholder="사이트명"><input type="text" id="acc-owner" placeholder="계정 주인"><input type="text" id="acc-id" placeholder="ID"><input type="text" id="acc-pw" placeholder="PW"><input type="number" id="acc-cap" placeholder="정원" value="1">
         <button id="btn-acc-save" onclick="addAccount()" class="btn btn-gray">계정 저장</button>
         <div id="acc-mng-list" style="margin-top:15px;"></div>
     </div>
@@ -93,7 +93,7 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
         <div class="stat"><span class="stat-num" id="stat-total">0</span><small>전체</small></div>
     </div>
     <div class="card" style="border:2px solid var(--blue);">
-        <div style="font-weight:700; margin-bottom:10px; font-size:14px;">🚀 로그인 신청</div>
+        <div style="font-weight:700; margin-bottom:10px; font-size:14px;">🚀 로그인하기</div>
         <div style="display:flex; gap:8px;">
             <input type="text" id="in-name" readonly style="width:90px; background:#f3f4f6;">
             <select id="in-account" onchange="updateBtn()"><option value="">계정 선택</option></select>
@@ -122,7 +122,7 @@ input, select, textarea{width:100%; padding:12px; border-radius:10px; border:1px
 <div id="toast" style="position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 20px; border-radius:20px; font-size:12px; opacity:0; transition:0.3s; z-index:2000;"></div>
 
 <script>
-/** 탭 전환 **/
+/** 탭 기능 **/
 function goTab(id, el){
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -131,7 +131,9 @@ function goTab(id, el){
     if(el) el.classList.add('active');
 }
 
-/** Firebase 설정 **/
+/** [설정] 디스코드 및 Firebase **/
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1498503995528843426/MegqrgkoIBgr_xdYvEkB-PnWzh57_SZubFCKB_u0LbzNogBsC97t_8GMmTPR7eUgf5LX";
+
 const firebaseConfig = {
     apiKey: "AIzaSyBy4_hmtnhYbbC7icOtajmpGvix4LO3Xhk",
     databaseURL: "https://muer-love-default-rtdb.firebaseio.com/",
@@ -144,7 +146,18 @@ const uRef=db.ref('login_users'), nRef=db.ref('notices'), aRef=db.ref('accounts'
 
 let accounts={}, users={}, notices={}, myName=localStorage.getItem('my_name')||'', lastStatus=null, editTgt={type:null, id:null};
 
-/** 실시간 리스너 **/
+/** 디스코드 알림 발송 **/
+function sendDiscordAlert(userName, accName) {
+    fetch(DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            content: `🔔 **차례 알림**\n**${userName}**님, 기다리시던 [**${accName}**] 계정의 사용 차례가 되었습니다! 지금 접속해 주세요.`
+        })
+    });
+}
+
+/** 실시간 데이터 감시 **/
 function listen(){
   aRef.on('value', s=>{
     accounts = s.val() || {};
@@ -172,7 +185,10 @@ function checkAndPromote() {
         const activeCount = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length;
         if (activeCount < (parseInt(acc.cap) || 1)) {
             const next = Object.entries(users).filter(([id, u]) => u.accId === accId && u.status === 'waiting').sort((a, b) => a[1].ts - b[1].ts)[0];
-            if (next) uRef.child(next[0]).update({ status: 'active', ts: Date.now() });
+            if (next) {
+                uRef.child(next[0]).update({ status: 'active', ts: Date.now() });
+                sendDiscordAlert(next[1].name, acc.label); // 디스코드 전송
+            }
         }
     });
 }
@@ -185,7 +201,7 @@ function renderUsers(){
     document.getElementById('stat-total').textContent = arr.length;
     document.getElementById('user-list').innerHTML = arr.map(([id,u])=>`
         <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:12px;">
-            <span><b>${u.name}</b> <small>(${accounts[u.accId]?.label || '삭제된 계정'})</small></span>
+            <span><b>${u.name}</b> <small>(${accounts[u.accId]?.label || '...'})</small></span>
             <div style="display:flex; align-items:center;">
                 <span style="font-size:11px; color:${u.status==='active'?'var(--green)':'var(--amber)'}; font-weight:700; margin-right:10px;">${u.status==='active'?'● 사용 중':'⏱ 대기 중'}</span>
                 ${(u.name === myName) ? `<button onclick="uRef.child('${id}').remove()" style="border:none; background:var(--red); color:#fff; padding:5px 10px; border-radius:5px; font-size:11px; cursor:pointer;">로그아웃</button>` : ""}
@@ -197,14 +213,11 @@ function renderAccountBoard(){
     document.getElementById('account-display-list').innerHTML = Object.entries(accounts).map(([id, a])=>`
         <div class="card">
             <div style="display:flex; justify-content:space-between;"><b>${a.label}</b> <small>정원: ${a.cap || 1}명</small></div>
-            <div class="acc-info-box">
-                <b>🔑 접속 정보</b><br>ID: ${a.id} / PW: ${a.pw}<br>
-                <small>👤 계정 주인: ${a.owner || '미지정'}</small>
-            </div>
-        </div>`).join('') || '<div class="card">등록된 계정이 없습니다.</div>';
+            <div class="acc-info-box"><b>🔑 접속 정보</b><br>ID: ${a.id} / PW: ${a.pw}<br><small>👤 주인: ${a.owner || '미지정'}</small></div>
+        </div>`).join('') || '<div class="card">등록된 계정 없음</div>';
 }
 
-/** 로그인 신청 **/
+/** 제어 로직 **/
 function updateBtn(){
     const btn=document.getElementById('btn-submit'), accId=document.getElementById('in-account').value;
     if(!myName || !accId) { btn.disabled=true; btn.className="btn btn-gray"; btn.textContent="계정을 선택하세요"; return; }
@@ -213,30 +226,21 @@ function updateBtn(){
     if(activeCount < (parseInt(accounts[accId]?.cap) || 1)) { btn.className = "btn btn-green"; btn.textContent = "🟢 지금 로그인하기"; }
     else { btn.className = "btn btn-amber"; btn.textContent = "🟡 사용 대기하기"; }
 }
-
 function handleReg(){
-    if(Object.values(users).some(u=>u.name===myName)) return alert("이미 로그인 중이거나 대기 중입니다.");
+    if(Object.values(users).some(u=>u.name===myName)) return alert("이미 등록됨");
     const accId = document.getElementById('in-account').value;
-    const activeCount = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length;
-    const status = activeCount < (parseInt(accounts[accId]?.cap) || 1) ? 'active' : 'waiting';
+    const status = Object.values(users).filter(u => u.accId === accId && u.status === 'active').length < (parseInt(accounts[accId]?.cap) || 1) ? 'active' : 'waiting';
     uRef.push({name:myName, accId:accId, status:status, ts:Date.now()});
-    toast(status === 'active' ? "로그인 시작!" : "대기열 등록 완료");
 }
-
-/** 관리자 기능 **/
 function openAdmin() { document.getElementById('admin-overlay').style.display='flex'; renderAdminNtc(); renderAdminAcc(); }
 function closeAdmin() { document.getElementById('admin-overlay').style.display='none'; resetForm(); }
-function showSub(id, btn){ document.querySelectorAll('.tool-box').forEach(b=>b.style.display='none'); document.querySelectorAll('.btn-sub').forEach(b=>b.style.background='#f3f4f6'); document.getElementById('sub-'+id).style.display='block'; btn.style.background='var(--blue)'; btn.style.color='#fff'; resetForm(); }
-function loadNtc(id) { editTgt={type:'ntc', id:id}; document.getElementById('ntc-title').value=notices[id].title; document.getElementById('ntc-body').value=notices[id].body; document.getElementById('btn-ntc-save').innerText="수정 완료"; }
-function addNotice(){ const t=document.getElementById('ntc-title').value; if(!t) return; const ref=editTgt.type==='ntc'?nRef.child(editTgt.id):nRef.push(); ref.set({title:t, body:document.getElementById('ntc-body').value, ts:Date.now()}).then(()=>resetForm()); }
-function loadAcc(id) { editTgt={type:'acc', id:id}; const a=accounts[id]; document.getElementById('acc-label').value=a.label; document.getElementById('acc-owner').value=a.owner; document.getElementById('acc-id').value=a.id; document.getElementById('acc-pw').value=a.pw; document.getElementById('acc-cap').value=a.cap||1; document.getElementById('btn-acc-save').innerText="수정 완료"; }
-function addAccount(){ const l=document.getElementById('acc-label').value; if(!l) return; const ref=editTgt.type==='acc'?aRef.child(editTgt.id):aRef.push(); ref.set({label:l, owner:document.getElementById('acc-owner').value, id:document.getElementById('acc-id').value, pw:document.getElementById('acc-pw').value, cap:document.getElementById('acc-cap').value}).then(()=>resetForm()); }
-function renderAdminNtc(){ document.getElementById('ntc-mng-list').innerHTML=Object.entries(notices).map(([id,n])=>`<div class="admin-item-row"><span>${n.title}</span><div><span onclick="loadNtc('${id}')" style="color:blue; cursor:pointer; margin-right:10px;">수정</span><span onclick="nRef.child('${id}').remove()" style="color:red; cursor:pointer;">삭제</span></div></div>`).join(''); }
-function renderAdminAcc(){ document.getElementById('acc-mng-list').innerHTML=Object.entries(accounts).map(([id,a])=>`<div class="admin-item-row"><span>${a.label}</span><div><span onclick="loadAcc('${id}')" style="color:blue; cursor:pointer; margin-right:10px;">수정</span><span onclick="aRef.child('${id}').remove()" style="color:red; cursor:pointer;">삭제</span></div></div>`).join(''); }
+function showSub(id, btn){ document.querySelectorAll('.tool-box').forEach(b=>b.style.display='none'); document.querySelectorAll('.btn-sub').forEach(b=>b.style.background='#f3f4f6'); document.getElementById('sub-'+id).style.display='block'; btn.style.background='var(--blue)'; btn.style.color='#fff'; }
+function addNotice(){ const t=document.getElementById('ntc-title').value; if(t) nRef.push({title:t, body:document.getElementById('ntc-body').value, ts:Date.now()}).then(()=>resetForm()); }
+function addAccount(){ const l=document.getElementById('acc-label').value; if(l) aRef.push({label:l, owner:document.getElementById('acc-owner').value, id:document.getElementById('acc-id').value, pw:document.getElementById('acc-pw').value, cap:document.getElementById('acc-cap').value}).then(()=>resetForm()); }
+function renderAdminNtc(){ document.getElementById('ntc-mng-list').innerHTML=Object.entries(notices).map(([id,n])=>`<div class="admin-item-row">${n.title} <span onclick="nRef.child('${id}').remove()" style="color:red; cursor:pointer;">삭제</span></div>`).join(''); }
+function renderAdminAcc(){ document.getElementById('acc-mng-list').innerHTML=Object.entries(accounts).map(([id,a])=>`<div class="admin-item-row">${a.label} <span onclick="aRef.child('${id}').remove()" style="color:red; cursor:pointer;">삭제</span></div>`).join(''); }
 function renderNotices(){ document.getElementById('notice-list').innerHTML=Object.entries(notices).sort((a,b)=>b[1].ts-a[1].ts).map(([id,n])=>`<div class="card" onclick="alert('${n.body.replace(/\n/g, '\\n')}')"><b>${n.title}</b></div>`).join(''); }
-
-/** 기초 로직 **/
-function resetForm(){ editTgt={type:null, id:null}; ['ntc-title','ntc-body','acc-label','acc-owner','acc-id','acc-pw','acc-cap'].forEach(i=>{if(document.getElementById(i)) document.getElementById(i).value='';}); document.getElementById('btn-ntc-save').innerText="저장"; document.getElementById('btn-acc-save').innerText="저장"; }
+function resetForm(){ ['ntc-title','ntc-body','acc-label','acc-owner','acc-id','acc-pw','acc-cap'].forEach(i=>{if(document.getElementById(i)) document.getElementById(i).value='';}); }
 function checkInitialName(){ if(!myName) document.getElementById('name-setup-overlay').style.display='flex'; else { document.getElementById('display-name').textContent = `👤 ${myName} 님`; document.getElementById('in-name').value = myName; listen(); } }
 function saveInitialName(){ const v = document.getElementById('initial-name-input').value.trim(); if(!v) return alert("이름을 입력하세요!"); myName = v; localStorage.setItem('my_name', v); location.reload(); }
 function forceReset(){ if(confirm("이용자를 변경하시겠습니까?")){ localStorage.removeItem('my_name'); location.reload(); } }
